@@ -1,0 +1,25 @@
+//
+// Prefix header for all source files of the 'cocos' target in the 'cocos' project
+//
+
+#ifdef __OBJC__
+	#import <Foundation/Foundation.h>
+	#import <UIKit/UIKit.h>
+
+#define AlicomColorHex(rgbValue)        [UIColor \
+colorWithRed:((float)((rgbValue & 0xFF0000) >> 16)) / 255.0 \
+green:((float)((rgbValue & 0xFF00) >> 8)) / 255.0 \
+blue:((float)(rgbValue & 0xFF)) / 255.0 alpha:1.0]
+
+#define APPID @"56168"
+#define VIDEO_ID @"6883971741184623"
+#define DEMO_APP_SERVER_HOST @"https://api-hll.jpsdk.com"
+#define DEMO_AUTHTOKEN_API @"/super/ios/v1-0-1/user/dypns_token"
+#define DEMO_VERIFY_API @""
+#define DEMO_TOKEN_EXPIR_TIME 900
+#define DEMO_SCHEME_CODE @"FA000000006990212034"
+#define LOGIN_TEMPLATEID @"100001"
+#define BIND_ACCOUNT @"100004"
+#define kDEMO_UD_PHONE_NUM @"phoneNum"
+
+#endif

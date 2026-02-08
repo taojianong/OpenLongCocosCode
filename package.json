@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "拆分动画帧-skillEffect": "node ./tools/CutZombieFrames.js ./zombie/skillEffect/ ./zombie_out/skillEffect/",
+    "拆分动画帧-mob": "node ./tools/CutZombieFrames.js ./zombie/mob/ ./zombie_out/mob/",
+    "导出配置文件":"node ./tools/XmlToExcel.js ./zombie/config/nomal/ ./zombie_out/config/"
+  },
+  "dependencies": {
+    "free-tex-packer-cli": "^0.3.0",
+    "node-xlsx": "^0.24.0",
+    "sharp": "^0.34.5",
+    "xml2js": "^0.6.2"
+  }
+}
