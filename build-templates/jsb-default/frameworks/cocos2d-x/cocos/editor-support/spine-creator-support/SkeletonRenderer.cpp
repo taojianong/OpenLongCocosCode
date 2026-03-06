@@ -92,36 +92,52 @@ SkeletonRenderer* SkeletonRenderer::createWithFile (const std::string& skeletonD
 }
 
 // 添加spine局部换肤
-void SkeletonRenderer::updateRegion(const std::string& slotName, const std::string& attachmentName, cocos2d::middleware::Texture2D *texture, float scale){
+void SkeletonRenderer::updateRegion(const std::string& slotName, const std::string& attachmentName, cocos2d::middleware::Texture2D *texture, float scale, float offsetX, float offsetY){
     Slot * slot = _skeleton->findSlot(slotName.c_str());
     if (slot == nullptr) {
         return;
     }
-    
+
     // 通过 slotName 和 attachmentName 获取指定的 attachment（与 Web 端一致）
     Attachment* baseAttachment = _skeleton->getAttachment(slotName.c_str(), attachmentName.c_str());
     if (baseAttachment == nullptr) {
         // 如果找不到指定名称的 attachment，则使用 slot 当前的 attachment
         baseAttachment = slot->getAttachment();
     }
-    
-    RegionAttachment *attachment = dynamic_cast<RegionAttachment*>(baseAttachment);
-    if (attachment == nullptr) {
+
+    RegionAttachment *originalAttachment = dynamic_cast<RegionAttachment*>(baseAttachment);
+    if (originalAttachment == nullptr) {
          return;
     }
-    
+
+    // 获取原始的 AttachmentVertices
+    AttachmentVertices *originalAttachV = (AttachmentVertices*)originalAttachment->getRendererObject();
+    if (originalAttachV == nullptr) {
+        return;
+    }
+
+    // 创建新的 RegionAttachment 实例，避免共享数据
+    RegionAttachment *attachment = new (__FILE__, __LINE__) RegionAttachment(originalAttachment->getName());
+
+    // 复制原始 attachment 的基本属性，并应用偏移
+    attachment->setX(originalAttachment->getX() + offsetX);
+    attachment->setY(originalAttachment->getY() + offsetY);
+    attachment->setRotation(originalAttachment->getRotation());
+    attachment->setScaleX(originalAttachment->getScaleX());
+    attachment->setScaleY(originalAttachment->getScaleY());
+
     Texture* texture2d = texture->getNativeTexture();
-    
+
     float width = texture2d->getWidth();
     float height = texture2d->getHeight();
-    
+
     float wide = texture->getPixelsWide();
     float high = texture->getPixelsHigh();
-    
+
     // 与 Web 端保持一致：直接设置缩放后的尺寸
     float scaledWidth = wide * scale;
     float scaledHeight = high * scale;
-    
+
     attachment->setUVs(0, 0, 1, 1, false);
     // 设置 region 尺寸（纹理实际尺寸）
     attachment->setRegionWidth(wide);
@@ -134,30 +150,32 @@ void SkeletonRenderer::updateRegion(const std::string& slotName, const std::stri
     // 设置缩放后的显示尺寸（与 Web 端一致）
     attachment->setWidth(scaledWidth);
     attachment->setHeight(scaledHeight);
-    
+
     texture->setPixelsWide(width);
     texture->setPixelsHigh(height);
     texture->setRealTextureIndex(1);
-    
+
+    // 复制原始的索引数组
+    unsigned short* indices = new unsigned short[originalAttachV->_triangles->indexCount];
+    memcpy(indices, originalAttachV->_triangles->indices, originalAttachV->_triangles->indexCount * sizeof(unsigned short));
+
+    // 创建新的 AttachmentVertices
+    AttachmentVertices *attachV = new AttachmentVertices(texture, originalAttachV->_triangles->vertCount, indices, originalAttachV->_triangles->indexCount);
+
+    // 设置 renderer object
+    attachment->setRendererObject(attachV);
+
     // 更新 offset（重新计算顶点偏移）
     attachment->updateOffset();
-    
-    AttachmentVertices *attachV = (AttachmentVertices*) attachment->getRendererObject();
-    if (attachV->_texture == texture) {
-        return;
-    }
-    
-    CC_SAFE_RELEASE(attachV->_texture);
-    attachV->_texture = texture;
-    CC_SAFE_RETAIN(texture);
-    
+
     // 更新顶点的 UV 坐标
     V2F_T2F_C4B *vertices = attachV->_triangles->verts;
-    for (int i = 0, ii = 0; i < 4; ++i, ii += 2) {
+    for (int i = 0, ii = 0; i < attachV->_triangles->vertCount; ++i, ii += 2) {
         vertices[i].texCoord.u = attachment->getUVs()[ii];
         vertices[i].texCoord.v = attachment->getUVs()[ii + 1];
     }
-    
+
+    // 直接设置到 slot，不添加到 skin（避免生命周期管理问题）
     slot->setAttachment(attachment);
 }
 

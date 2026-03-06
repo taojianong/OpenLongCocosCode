@@ -71,8 +71,8 @@ namespace spine {
         void updateWorldTransform ();
 
         //clong 2026.1.11
-        void updateRegion(const std::string& slotName, const std::string& attachmentName, cocos2d::middleware::Texture2D *texture, float scale = 1.0f);
- 
+        void updateRegion(const std::string& slotName, const std::string& attachmentName, cocos2d::middleware::Texture2D *texture, float scale = 1.0f, float offsetX = 0.0f, float offsetY = 0.0f);
+
         void setToSetupPose ();
         void setBonesToSetupPose ();
         void setSlotsToSetupPose ();

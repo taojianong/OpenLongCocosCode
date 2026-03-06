@@ -295,7 +295,7 @@ export default class SpineUtils {
      * @param attachmentName 
      * @param texture 
      */
-    static replaceWeaponTexture(spine: sp.Skeleton, slotName: string, attachmentName: string, texture: cc.Texture2D, scale = 1) {
+    static replaceWeaponTexture(spine: sp.Skeleton, slotName: string, attachmentName: string, texture: cc.Texture2D, scale = 1, offsetX = 0, offsetY = 0) {
 
         if (cc.sys.isNative) {
             // 直接传递 renderer::Texture 原生指针和尺寸信息
@@ -322,7 +322,9 @@ export default class SpineUtils {
                         nativeTexture,
                         width,
                         height,
-                        scale
+                        scale,
+                        offsetX,
+                        offsetY
                     );
                     cc.log("[App] updateRegion result:", result);
                 } catch (e) {

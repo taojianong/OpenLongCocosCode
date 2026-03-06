@@ -236,17 +236,17 @@ static bool js_register_spine_retainSkeletonData(se::State& s)
 SE_BIND_FUNC(js_register_spine_retainSkeletonData)
 
 // JSB 绑定函数 - 调用 SkeletonRenderer::updateRegion
-// 参数: (skeleton, slotName, attachmentName, nativeTexture, width, height, scale)
+// 参数: (skeleton, slotName, attachmentName, nativeTexture, width, height, scale, offsetX, offsetY)
 // 直接接收 renderer::Texture 指针，避免 middleware.Texture2D 的 JSB 绑定问题
 static bool js_spine_updateRegion(se::State& s) {
     const auto& args = s.args();
     size_t argc = args.size();
-    
+
     if (argc < 6) {
         SE_REPORT_ERROR("Wrong number of arguments: %zu, expected at least 6 (skeleton, slotName, attachmentName, nativeTexture, width, height)", argc);
         return false;
     }
-    
+
     // 获取 SkeletonRenderer
     spine::SkeletonRenderer* skeleton = nullptr;
     bool ok = seval_to_native_ptr(args[0], &skeleton);
@@ -254,7 +254,7 @@ static bool js_spine_updateRegion(se::State& s) {
         SE_REPORT_ERROR("Invalid SkeletonRenderer");
         return false;
     }
-    
+
     // 获取 slotName
     std::string slotName;
     ok = seval_to_std_string(args[1], &slotName);
@@ -262,7 +262,7 @@ static bool js_spine_updateRegion(se::State& s) {
         SE_REPORT_ERROR("Invalid slotName");
         return false;
     }
-    
+
     // 获取 attachmentName
     std::string attachmentName;
     ok = seval_to_std_string(args[2], &attachmentName);
@@ -270,7 +270,7 @@ static bool js_spine_updateRegion(se::State& s) {
         SE_REPORT_ERROR("Invalid attachmentName");
         return false;
     }
-    
+
     // 获取 renderer::Texture (cc.Texture2D.getImpl() 返回的原生纹理)
     cocos2d::renderer::Texture* nativeTexture = nullptr;
     ok = seval_to_native_ptr(args[3], &nativeTexture);
@@ -278,7 +278,7 @@ static bool js_spine_updateRegion(se::State& s) {
         SE_REPORT_ERROR("Invalid native texture");
         return false;
     }
-    
+
     // 获取 width
     int width = 0;
     ok = seval_to_int32(args[4], &width);
@@ -286,7 +286,7 @@ static bool js_spine_updateRegion(se::State& s) {
         SE_REPORT_ERROR("Invalid width");
         return false;
     }
-    
+
     // 获取 height
     int height = 0;
     ok = seval_to_int32(args[5], &height);
@@ -294,7 +294,7 @@ static bool js_spine_updateRegion(se::State& s) {
         SE_REPORT_ERROR("Invalid height");
         return false;
     }
-    
+
     // 获取可选的 scale 参数，默认 1.0
     float scale = 1.0f;
     if (argc >= 7) {
@@ -303,21 +303,39 @@ static bool js_spine_updateRegion(se::State& s) {
             scale = 1.0f;
         }
     }
-    
+
+    // 获取可选的 offsetX 参数，默认 0.0
+    float offsetX = 0.0f;
+    if (argc >= 8) {
+        ok = seval_to_float(args[7], &offsetX);
+        if (!ok) {
+            offsetX = 0.0f;
+        }
+    }
+
+    // 获取可选的 offsetY 参数，默认 0.0
+    float offsetY = 0.0f;
+    if (argc >= 9) {
+        ok = seval_to_float(args[8], &offsetY);
+        if (!ok) {
+            offsetY = 0.0f;
+        }
+    }
+
     // 创建临时 middleware::Texture2D 对象
     cocos2d::middleware::Texture2D* texture = new cocos2d::middleware::Texture2D();
     texture->setNativeTexture(nativeTexture);
     texture->setPixelsWide(width);
     texture->setPixelsHigh(height);
-    
+
     // 调用 SkeletonRenderer::updateRegion 方法
-    skeleton->updateRegion(slotName, attachmentName, texture, scale);
-    
+    skeleton->updateRegion(slotName, attachmentName, texture, scale, offsetX, offsetY);
+
     // 注意: texture 会被 updateRegion 内部 retain，所以这里可以安全 release
     // 但由于我们是 new 创建的，需要手动 release（引用计数从1开始）
     // updateRegion 会 retain 它，所以最终引用计数为1
     // 这里不需要显式 release，因为 updateRegion 内部会管理它
-    
+
     s.rval().setBoolean(true);
     return true;
 }
