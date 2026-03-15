@@ -4,13 +4,11 @@
     "拆分动画帧-mob": "node ./tools/CutZombieFrames.js ./zombie/mob/ ./zombie_out/mob/",
     "导出配置文件":"node ./tools/XmlToExcel.js ./zombie/config/nomal/ ./zombie_out/config/",
     "psd:gen": "node tools/psd/GenPsd.js",
-    "psd:gen-all": "node tools/psd/GenPsd.js psd/configs/UI_MainMenu.json psd/configs/UI_MainHome.json psd/configs/UI_ResultVictory.json psd/configs/UI_ResultDefeat.json psd/configs/BattleHUD_demo.json",
-    "psd:gen-home": "node tools/psd/GenPsd.js psd/configs/UI_MainHome.json",
-    "psd:gen-victory": "node tools/psd/GenPsd.js psd/configs/UI_ResultVictory.json",
-    "psd:gen-defeat": "node tools/psd/GenPsd.js psd/configs/UI_ResultDefeat.json",
-    "psd:preview": "node tools/psd/PsdToPrefab.js psd/UI_MainMenu.psd --preview-only --out output/UI_MainMenu",
-    "psd:main": "node tools/psd/PsdToPrefab.js psd/UI_MainMenu.psd --out output/UI_MainMenu",
-    "psd:main-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_MainMenu.psd --out assets/net_main/prefab --img assets/net_main/textures/ui/main --ts assets/scripts/game/ui/panel/generated --preview assets/net_main/textures/preview --prefab-name MainMenu --script assets/scripts/game/ui/panel/MainMenuPanel.ts",
+    "psd:gen-all": "node tools/psd/GenPsd.js psd/configs/UI_MainHome.json psd/configs/UI_MainHome.json psd/configs/UI_ResultVictory.json psd/configs/UI_ResultDefeat.json psd/configs/BattleHUD_demo.json",
+    "psd:gen-psd": "node tools/psd/GenPsd.js psd/configs/UI_MainHome.json",
+    "psd:preview": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --preview-only --out output/UI_MainHome",
+    "psd:main": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --out psd/output/UI_MainHome",
+    "psd:main-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --out assets/net_main/prefab --img assets/net_main/textures/ui/main --ts assets/scripts/game/ui/panel/generated --preview assets/net_main/textures/preview --prefab-name MainMenu --script assets/scripts/game/ui/panel/MainMenuPanel.ts",
     "psd:from-figma": "node tools/psd/FigmaToPsd.js",
     "psd:home": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --out output/UI_MainHome",
     "psd:home-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --out assets/net_main/prefab --img assets/net_main/textures/ui/home --ts assets/scripts/game/ui/panel/generated --preview assets/net_main/textures/preview --prefab-name MainHome",
@@ -19,8 +17,11 @@
   },
   "dependencies": {
     "free-tex-packer-cli": "^0.3.0",
-    "node-xlsx": "^0.24.0",
+    "node-xlsx": "^0.24.0", 
     "sharp": "^0.34.5",
     "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "ag-psd": "^30.1.0"
   }
 }
