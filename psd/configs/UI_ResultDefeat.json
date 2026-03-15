@@ -1,0 +1,58 @@
+{
+  "name": "UI_ResultDefeat",
+  "width": 750,
+  "height": 1334,
+  "colors": {
+    "WHITE": [255, 255, 255],
+    "RED": [255, 68, 68],
+    "GOLD": [255, 210, 55],
+    "SILVER": [190, 205, 220],
+    "DIM": [130, 140, 160],
+    "BTN_REPLAY": [44, 152, 58],
+    "BTN_BACK": [50, 60, 90]
+  },
+  "layers": [
+    { "type": "text", "name": "txt_btnReplay", "text": "▶   重  玩", "left": 410, "top": 870, "right": 660, "bottom": 940, "fontSize": 32, "color": "WHITE", "bold": true },
+    { "type": "button", "name": "btn_replay", "left": 410, "top": 865, "right": 660, "bottom": 945, "color": "BTN_REPLAY" },
+    { "type": "radial", "name": "#sp_replayGlow", "left": 390, "top": 855, "right": 680, "bottom": 955, "color1": [44, 152, 58], "color2": [15, 12, 28], "alpha": 35 },
+
+    { "type": "text", "name": "txt_btnBack", "text": "返  回", "left": 90, "top": 870, "right": 340, "bottom": 940, "fontSize": 30, "color": "SILVER", "bold": true },
+    { "type": "button", "name": "btn_back", "left": 90, "top": 865, "right": 340, "bottom": 945, "color": "BTN_BACK" },
+
+    { "type": "text", "name": "txt_tip", "text": "再 接 再 厉 ！", "left": 200, "top": 770, "right": 550, "bottom": 815, "fontSize": 26, "color": "DIM" },
+
+    {
+      "type": "group",
+      "name": "node_stats",
+      "left": 80, "top": 440, "right": 670, "bottom": 720,
+      "children": [
+        { "type": "text", "name": "txt_kill", "text": "12", "left": 400, "top": 460, "right": 640, "bottom": 515, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_killLabel", "text": "击 杀 数", "left": 110, "top": 460, "right": 380, "bottom": 515, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "text", "name": "txt_coin", "text": "350", "left": 400, "top": 523, "right": 640, "bottom": 578, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_coinLabel", "text": "金 币 获 得", "left": 110, "top": 523, "right": 380, "bottom": 578, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "text", "name": "txt_wave", "text": "3/8", "left": 400, "top": 586, "right": 640, "bottom": 641, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_waveLabel", "text": "波       数", "left": 110, "top": 586, "right": 380, "bottom": 641, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "solid", "name": "#sp_line0", "left": 110, "top": 521, "right": 640, "bottom": 525, "color": [60, 70, 100], "alpha": 60 },
+        { "type": "solid", "name": "#sp_line1", "left": 110, "top": 584, "right": 640, "bottom": 588, "color": [60, 70, 100], "alpha": 60 },
+
+        { "type": "noise", "name": "sp_statsBg@9", "left": 80, "top": 440, "right": 670, "bottom": 720, "color": [20, 14, 18], "alpha": 210, "magnitude": 6, "seed": 54321 }
+      ]
+    },
+
+    { "type": "text", "name": "txt_title", "text": "D E F E A T", "left": 80, "top": 320, "right": 670, "bottom": 400, "fontSize": 56, "color": "RED", "bold": true },
+    { "type": "radial", "name": "#sp_titleGlow", "left": 100, "top": 300, "right": 650, "bottom": 420, "color1": [200, 30, 30], "color2": [20, 10, 15], "alpha": 45 },
+
+    {
+      "type": "noise",
+      "name": "background",
+      "left": 0, "top": 0, "right": 750, "bottom": 1334,
+      "color": [14, 8, 10],
+      "alpha": 230,
+      "magnitude": 6,
+      "seed": 54321
+    }
+  ]
+}

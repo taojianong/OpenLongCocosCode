@@ -2,7 +2,20 @@
   "scripts": {
     "拆分动画帧-skillEffect": "node ./tools/CutZombieFrames.js ./zombie/skillEffect/ ./zombie_out/skillEffect/",
     "拆分动画帧-mob": "node ./tools/CutZombieFrames.js ./zombie/mob/ ./zombie_out/mob/",
-    "导出配置文件":"node ./tools/XmlToExcel.js ./zombie/config/nomal/ ./zombie_out/config/"
+    "导出配置文件":"node ./tools/XmlToExcel.js ./zombie/config/nomal/ ./zombie_out/config/",
+    "psd:gen": "node tools/psd/GenPsd.js",
+    "psd:gen-all": "node tools/psd/GenPsd.js psd/configs/UI_MainMenu.json psd/configs/UI_MainHome.json psd/configs/UI_ResultVictory.json psd/configs/UI_ResultDefeat.json psd/configs/BattleHUD_demo.json",
+    "psd:gen-home": "node tools/psd/GenPsd.js psd/configs/UI_MainHome.json",
+    "psd:gen-victory": "node tools/psd/GenPsd.js psd/configs/UI_ResultVictory.json",
+    "psd:gen-defeat": "node tools/psd/GenPsd.js psd/configs/UI_ResultDefeat.json",
+    "psd:preview": "node tools/psd/PsdToPrefab.js psd/UI_MainMenu.psd --preview-only --out output/UI_MainMenu",
+    "psd:main": "node tools/psd/PsdToPrefab.js psd/UI_MainMenu.psd --out output/UI_MainMenu",
+    "psd:main-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_MainMenu.psd --out assets/net_main/prefab --img assets/net_main/textures/ui/main --ts assets/scripts/game/ui/panel/generated --preview assets/net_main/textures/preview --prefab-name MainMenu --script assets/scripts/game/ui/panel/MainMenuPanel.ts",
+    "psd:from-figma": "node tools/psd/FigmaToPsd.js",
+    "psd:home": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --out output/UI_MainHome",
+    "psd:home-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_MainHome.psd --out assets/net_main/prefab --img assets/net_main/textures/ui/home --ts assets/scripts/game/ui/panel/generated --preview assets/net_main/textures/preview --prefab-name MainHome",
+    "psd:victory-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_ResultVictory.psd --out assets/net_battle/prefab/ui --img assets/net_battle/textures/ui/result_victory --ts assets/scripts/game/ui/panel/generated --preview assets/net_battle/textures/preview --prefab-name ResultVictory --script assets/scripts/game/ui/panel/ResultVictoryPanel.ts",
+    "psd:defeat-to-assets": "node tools/psd/PsdToPrefab.js psd/UI_ResultDefeat.psd --out assets/net_battle/prefab/ui --img assets/net_battle/textures/ui/result_defeat --ts assets/scripts/game/ui/panel/generated --preview assets/net_battle/textures/preview --prefab-name ResultDefeat --script assets/scripts/game/ui/panel/ResultDefeatPanel.ts"
   },
   "dependencies": {
     "free-tex-packer-cli": "^0.3.0",

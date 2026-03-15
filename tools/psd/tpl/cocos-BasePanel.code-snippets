@@ -1,0 +1,77 @@
+{
+	// Place your global snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+	// description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+	// is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+	// used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+	// Placeholders with the same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"scope": "javascript,typescript",
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+	"React-Native Class": {
+		"scope": "javascript,typescript",
+		"prefix": "cocos_BasePanel",
+		"body": [
+			"import BasePanel from \"../../../core/component/BasePanel\";",
+			"",
+			"const { ccclass, property } = cc._decorator;",
+			"/**",
+			" * ",
+			" * @author clong $CURRENT_YEAR.$CURRENT_MONTH.$CURRENT_DATE",
+			" */",
+			"@ccclass",
+			"export default class $TM_FILENAME_BASE extends BasePanel {",
+			"",
+			"\tconstructor() {",
+			"\t\tsuper();",
+			"\t}",
+			"",
+			"\tprotected afteronLoad(): void {",
+			"\t\t",
+			"\t}",
+			"",
+			"",
+			"\tonShow(data: any): void {",
+			"\t\t",
+			"\t}",
+			"",
+			"\t/**",
+			"\t* 条目时需要",
+			"\t* @param data",
+			"\t*/",
+			"\tupdateView(data: any) {",
+			"\t\t",
+			"\t}",
+			"",
+			"\tonBtnClicked(e: any, name: string) {",
+			"",
+			"\t\tif (name == \"btn_close\") {",
+			"\t\t\tthis.close();",
+			"\t\t}",
+			"\t}",
+			"",
+			"\tonHide(): void {",
+			"",
+			"\t\tsuper.onHide();",
+			"\t}",
+			"",
+			"}"
+		],
+		"description": "创建一个BasePanel文件"
+	}
+	// /** @prop {name:intType, tips:"整数类型示例", type:Int, default:1000}/
+	// let intType = 1000;
+	// /** @prop {name:numType, tips:"数字类型示例", type:Number, default:1000}/
+	// let numType = 1000;
+	// /** @prop {name:strType, tips:"字符串类型示例", type:String, default:"hello laya"}/
+	// let strType = "hello laya";
+	// /** @prop {name:boolType, tips:"布尔类型示例", type:Bool, default:true}/
+	// let boolType = true;
+}

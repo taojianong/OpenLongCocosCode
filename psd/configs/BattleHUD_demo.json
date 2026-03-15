@@ -1,0 +1,63 @@
+{
+  "name": "BattleHUD_demo",
+  "width": 750,
+  "height": 1334,
+  "colors": {},
+  "layers": [
+    {
+      "type": "solid",
+      "name": "#标注参考",
+      "hidden": true,
+      "left": 0, "top": 0, "right": 750, "bottom": 1334,
+      "color": [255, 0, 0],
+      "alpha": 30
+    },
+    {
+      "type": "group",
+      "name": "node_topBar",
+      "left": 0, "top": 0, "right": 750, "bottom": 80,
+      "children": [
+        { "type": "solid", "name": "btn_pause", "left": 660, "top": 15, "right": 730, "bottom": 65, "color": [69, 90, 100], "alpha": 220 },
+        { "type": "text", "name": "txt_wave", "text": "1/5", "left": 530, "top": 20, "right": 660, "bottom": 60, "fontSize": 28, "color": [100, 255, 100], "bold": true },
+        { "type": "text", "name": "txt_coin", "text": "1,250", "left": 350, "top": 22, "right": 460, "bottom": 52, "fontSize": 22, "color": [255, 214, 0], "bold": true, "align": "left" },
+        { "type": "circle", "name": "sp_coinIcon", "left": 310, "top": 15, "right": 346, "bottom": 51, "size": 36, "color": [255, 193, 7] },
+        {
+          "type": "group",
+          "name": "progress_hp",
+          "left": 20, "top": 20, "right": 300, "bottom": 56,
+          "children": [
+            { "type": "gradient", "name": "sp_hpFill@fill", "left": 25, "top": 26, "right": 295, "bottom": 54, "color1": [76, 175, 80], "color2": [200, 230, 80], "direction": "horizontal" },
+            { "type": "solid", "name": "sp_hpBg", "left": 20, "top": 20, "right": 300, "bottom": 56, "color": [26, 26, 26], "alpha": 200 }
+          ]
+        },
+        { "type": "solid", "name": "sp_topBarBg", "left": 0, "top": 0, "right": 750, "bottom": 80, "color": [0, 0, 0], "alpha": 180 }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "!node_waveBanner",
+      "left": 175, "top": 275, "right": 575, "bottom": 355,
+      "children": [
+        { "type": "text", "name": "txt_waveBanner", "text": "第 1 波", "left": 175, "top": 285, "right": 575, "bottom": 345, "fontSize": 32, "color": [100, 255, 100], "bold": true },
+        { "type": "solid", "name": "sp_bannerBg@9", "left": 175, "top": 275, "right": 575, "bottom": 355, "color": [40, 44, 52], "alpha": 230 }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "node_bottom",
+      "left": 0, "top": 1214, "right": 750, "bottom": 1334,
+      "children": [
+        { "type": "solid", "name": "btn_ammo2", "left": 175, "top": 1234, "right": 239, "bottom": 1298, "color": [69, 90, 100], "alpha": 200 },
+        { "type": "solid", "name": "btn_ammo1", "left": 95, "top": 1234, "right": 159, "bottom": 1298, "color": [69, 90, 100], "alpha": 200 },
+        { "type": "solid", "name": "btn_ammo0", "left": 15, "top": 1234, "right": 79, "bottom": 1298, "color": [255, 152, 0], "alpha": 220 },
+        { "type": "solid", "name": "sp_bottomBg", "left": 0, "top": 1214, "right": 750, "bottom": 1334, "color": [0, 0, 0], "alpha": 128 }
+      ]
+    },
+    {
+      "type": "solid",
+      "name": "background",
+      "left": 0, "top": 0, "right": 750, "bottom": 1334,
+      "color": [42, 58, 42]
+    }
+  ]
+}

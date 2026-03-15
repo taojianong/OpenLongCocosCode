@@ -1,9 +1,7 @@
-这个项目用于开源cocoscreator 2.4.x 的代码
+这里解决了一个cocoscreator2.4.x Spine穿戴武器的问题,在网页端可以直接使用武器图片添加到挂点,但是安卓端底层原生不支持,参考网上的一些方法修改,这里给出个完整的demo以供参考
 
-这里解决了一个spine 武器挂件动态加载图片的问题,也是整理了论坛里大神们的成果
-如 https://forum.cocos.org/t/topic/83266 及里面提到的相关链接
-只是没有完整项目来展示,所以这里我就整理下,供大家参考学习
+cocos论坛帖子
+https://forum.cocos.org/t/spine-sp-skeletontexture-is-not-a-constructor/92644/9
 
-已亲自打包验证可行
-
-因为我没有写C++底层代码的能力,这里使用Qoder辅助进行了相关突破,说下Qoder确实挺牛逼的!国内使用友好,推荐下,只是略贵
+参考网站
+https://www.codeleading.com/article/70565071572/

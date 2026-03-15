@@ -1,0 +1,127 @@
+{
+  "name": "UI_MainHome",
+  "width": 750,
+  "height": 1334,
+  "colors": {
+    "WHITE": [255, 255, 255],
+    "GOLD": [255, 210, 55],
+    "SILVER": [190, 205, 220],
+    "LIGHT_BLUE": [170, 210, 255],
+    "GREEN_TEXT": [180, 255, 190],
+    "DIM": [100, 110, 130],
+    "BTN_START": [44, 152, 58],
+    "BTN_NAV": [26, 34, 56],
+    "BTN_CHAPTER": [40, 55, 90],
+    "BTN_ACTIVE_TAB": [28, 72, 38]
+  },
+  "layers": [
+    {
+      "type": "group",
+      "name": "node_topBar",
+      "left": 0, "top": 0, "right": 750, "bottom": 96,
+      "children": [
+        { "type": "button", "name": "btn_setting", "left": 20, "top": 18, "right": 78, "bottom": 76, "color": "BTN_NAV" },
+        { "type": "radial", "name": "sp_gemIcon", "left": 672, "top": 24, "right": 720, "bottom": 72, "color1": [130, 200, 255], "color2": [60, 100, 220], "alpha": 240 },
+        { "type": "text", "name": "txt_gem", "text": "500", "left": 590, "top": 28, "right": 668, "bottom": 68, "fontSize": 26, "color": "GOLD", "bold": true },
+        { "type": "gradient", "name": "sp_coinIcon", "left": 445, "top": 24, "right": 493, "bottom": 72, "color1": [255, 220, 40], "color2": [210, 155, 0] },
+        { "type": "text", "name": "txt_coin", "text": "12,500", "left": 338, "top": 28, "right": 441, "bottom": 68, "fontSize": 26, "color": "GOLD", "bold": true },
+        { "type": "gradient", "name": "#sp_topBarBg", "left": 0, "top": 0, "right": 750, "bottom": 96, "color1": [4, 6, 16], "color2": [8, 12, 26], "alpha": 235 }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "node_heroArea",
+      "left": 0, "top": 96, "right": 750, "bottom": 270,
+      "children": [
+        { "type": "text", "name": "txt_subtitle", "text": "末 日 生 存  ·  无 尽 战 场", "left": 140, "top": 218, "right": 610, "bottom": 254, "fontSize": 22, "color": "LIGHT_BLUE" },
+        { "type": "text", "name": "txt_gameTitle", "text": "ZOMBIES", "left": 80, "top": 118, "right": 670, "bottom": 210, "fontSize": 80, "color": "WHITE", "bold": true },
+        { "type": "radial", "name": "#sp_spotlight", "left": 120, "top": 96, "right": 630, "bottom": 270, "color1": [180, 20, 30], "color2": [20, 10, 25], "alpha": 200 },
+        { "type": "gradient", "name": "#sp_heroBg", "left": 0, "top": 96, "right": 750, "bottom": 270, "color1": [60, 5, 10], "color2": [12, 16, 36] }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "node_chapter",
+      "left": 0, "top": 280, "right": 750, "bottom": 355,
+      "children": [
+        { "type": "text", "name": "txt_prev", "text": "<", "left": 158, "top": 298, "right": 208, "bottom": 340, "fontSize": 26, "color": "SILVER", "bold": true },
+        { "type": "button", "name": "btn_prevChapter", "left": 155, "top": 294, "right": 210, "bottom": 344, "color": "BTN_CHAPTER" },
+        { "type": "text", "name": "txt_chapterTitle", "text": "第  1  章", "left": 230, "top": 296, "right": 520, "bottom": 340, "fontSize": 32, "color": "WHITE", "bold": true },
+        { "type": "text", "name": "txt_next", "text": ">", "left": 542, "top": 298, "right": 592, "bottom": 340, "fontSize": 26, "color": "SILVER", "bold": true },
+        { "type": "button", "name": "btn_nextChapter", "left": 540, "top": 294, "right": 595, "bottom": 344, "color": "BTN_CHAPTER" },
+        { "type": "overlay", "name": "sp_chapterBg@9", "left": 40, "top": 280, "right": 710, "bottom": 355, "color": [10, 14, 30], "alpha": 180 }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "node_levelList",
+      "left": 40, "top": 365, "right": 710, "bottom": 885,
+      "children": [
+        { "type": "text", "name": "#txt_lv1", "text": "1-1", "left": 80, "top": 500, "right": 260, "bottom": 540, "fontSize": 30, "color": "WHITE", "bold": true },
+        { "type": "text", "name": "#txt_lv2", "text": "1-2", "left": 285, "top": 500, "right": 465, "bottom": 540, "fontSize": 30, "color": "WHITE", "bold": true },
+        { "type": "text", "name": "#txt_lv3", "text": "1-3", "left": 490, "top": 500, "right": 670, "bottom": 540, "fontSize": 30, "color": "WHITE", "bold": true },
+        { "type": "button", "name": "#sp_lv1", "left": 80, "top": 432, "right": 260, "bottom": 612, "color": [40, 50, 80] },
+        { "type": "button", "name": "#sp_lv2", "left": 285, "top": 432, "right": 465, "bottom": 612, "color": [40, 50, 80] },
+        { "type": "button", "name": "#sp_lv3", "left": 490, "top": 432, "right": 670, "bottom": 612, "color": [40, 50, 80] },
+        { "type": "text", "name": "#txt_lv4", "text": "1-4", "left": 80, "top": 710, "right": 260, "bottom": 750, "fontSize": 30, "color": "DIM" },
+        { "type": "text", "name": "#txt_lv5", "text": "1-5", "left": 285, "top": 710, "right": 465, "bottom": 750, "fontSize": 30, "color": "DIM" },
+        { "type": "text", "name": "#txt_lv6", "text": "1-6", "left": 490, "top": 710, "right": 670, "bottom": 750, "fontSize": 30, "color": "DIM" },
+        { "type": "overlay", "name": "#sp_lv4", "left": 80, "top": 642, "right": 260, "bottom": 822, "color": [22, 28, 44], "alpha": 180 },
+        { "type": "overlay", "name": "#sp_lv5", "left": 285, "top": 642, "right": 465, "bottom": 822, "color": [22, 28, 44], "alpha": 180 },
+        { "type": "overlay", "name": "#sp_lv6", "left": 490, "top": 642, "right": 670, "bottom": 822, "color": [22, 28, 44], "alpha": 180 },
+        { "type": "noise", "name": "sp_levelBg@9", "left": 40, "top": 365, "right": 710, "bottom": 885, "color": [10, 14, 28], "alpha": 200, "magnitude": 5 }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "node_action",
+      "left": 0, "top": 900, "right": 750, "bottom": 1155,
+      "children": [
+        { "type": "text", "name": "txt_btnBattle", "text": "▶   进 入 战 斗", "left": 100, "top": 918, "right": 650, "bottom": 1018, "fontSize": 38, "color": "WHITE", "bold": true },
+        { "type": "button", "name": "btn_battle", "left": 100, "top": 918, "right": 650, "bottom": 1018, "color": "BTN_START" },
+        { "type": "radial", "name": "#sp_btnGlow", "left": 80, "top": 908, "right": 670, "bottom": 1028, "color1": [44, 152, 58], "color2": [10, 15, 28], "alpha": 50 },
+        { "type": "text", "name": "txt_progressPct", "text": "60%", "left": 550, "top": 1050, "right": 670, "bottom": 1088, "fontSize": 24, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_progressLabel", "text": "第 3 关", "left": 80, "top": 1050, "right": 250, "bottom": 1088, "fontSize": 24, "color": "LIGHT_BLUE" },
+        { "type": "gradient", "name": "sp_progressFill", "left": 80, "top": 1095, "right": 434, "bottom": 1127, "color1": [72, 200, 90], "color2": [40, 150, 55] },
+        { "type": "overlay", "name": "sp_progressBg@9", "left": 80, "top": 1095, "right": 670, "bottom": 1127, "color": [16, 22, 40], "alpha": 220 }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "node_tabBar",
+      "left": 0, "top": 1160, "right": 750, "bottom": 1334,
+      "children": [
+        { "type": "solid", "name": "sp_tabIconShop", "left": 55, "top": 1185, "right": 95, "bottom": 1225, "color": [150, 130, 80], "alpha": 180 },
+        { "type": "solid", "name": "sp_tabIconEquip", "left": 205, "top": 1185, "right": 245, "bottom": 1225, "color": [120, 140, 170], "alpha": 180 },
+        { "type": "solid", "name": "sp_tabIconBattle", "left": 355, "top": 1185, "right": 395, "bottom": 1225, "color": [100, 210, 120], "alpha": 220 },
+        { "type": "solid", "name": "sp_tabIconGem", "left": 505, "top": 1185, "right": 545, "bottom": 1225, "color": [180, 100, 230], "alpha": 180 },
+        { "type": "solid", "name": "sp_tabIconGuild", "left": 655, "top": 1185, "right": 695, "bottom": 1225, "color": [130, 140, 170], "alpha": 180 },
+
+        { "type": "text", "name": "txt_tabShop", "text": "商城", "left": 0, "top": 1238, "right": 150, "bottom": 1275, "fontSize": 22, "color": "SILVER" },
+        { "type": "text", "name": "txt_tabEquip", "text": "装备", "left": 150, "top": 1238, "right": 300, "bottom": 1275, "fontSize": 22, "color": "SILVER" },
+        { "type": "text", "name": "txt_tabBattle", "text": "战斗", "left": 300, "top": 1238, "right": 450, "bottom": 1275, "fontSize": 22, "color": "GREEN_TEXT", "bold": true },
+        { "type": "text", "name": "txt_tabGem", "text": "宝石", "left": 450, "top": 1238, "right": 600, "bottom": 1275, "fontSize": 22, "color": "SILVER" },
+        { "type": "text", "name": "txt_tabGuild", "text": "公会", "left": 600, "top": 1238, "right": 750, "bottom": 1275, "fontSize": 22, "color": "SILVER" },
+
+        { "type": "solid", "name": "sp_tabActive", "left": 310, "top": 1160, "right": 440, "bottom": 1167, "color": [61, 180, 72] },
+
+        { "type": "button", "name": "btn_tabShop", "left": 0, "top": 1164, "right": 150, "bottom": 1334, "color": "BTN_NAV" },
+        { "type": "button", "name": "btn_tabEquip", "left": 150, "top": 1164, "right": 300, "bottom": 1334, "color": "BTN_NAV" },
+        { "type": "button", "name": "btn_tabBattle", "left": 300, "top": 1164, "right": 450, "bottom": 1334, "color": "BTN_ACTIVE_TAB" },
+        { "type": "button", "name": "btn_tabGem", "left": 450, "top": 1164, "right": 600, "bottom": 1334, "color": "BTN_NAV" },
+        { "type": "button", "name": "btn_tabGuild", "left": 600, "top": 1164, "right": 750, "bottom": 1334, "color": "BTN_NAV" },
+
+        { "type": "solid", "name": "#sp_tabDivider", "left": 0, "top": 1160, "right": 750, "bottom": 1164, "color": [255, 60, 70], "alpha": 80 },
+        { "type": "gradient", "name": "#sp_tabBarBg", "left": 0, "top": 1160, "right": 750, "bottom": 1334, "color1": [6, 10, 20], "color2": [12, 16, 32] }
+      ]
+    },
+    {
+      "type": "noise",
+      "name": "background",
+      "left": 0, "top": 0, "right": 750, "bottom": 1334,
+      "color": [11, 15, 28],
+      "alpha": 255,
+      "magnitude": 9
+    }
+  ]
+}

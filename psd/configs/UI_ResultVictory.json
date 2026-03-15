@@ -1,0 +1,75 @@
+{
+  "name": "UI_ResultVictory",
+  "width": 750,
+  "height": 1334,
+  "colors": {
+    "WHITE": [255, 255, 255],
+    "GOLD": [255, 210, 55],
+    "SILVER": [190, 205, 220],
+    "LIGHT_BLUE": [170, 210, 255],
+    "DIM": [100, 110, 130],
+    "BTN_NEXT": [44, 152, 58],
+    "BTN_REPLAY": [168, 120, 16],
+    "BTN_BACK": [50, 60, 90]
+  },
+  "layers": [
+    { "type": "text", "name": "txt_btnNext", "text": "▶   下 一 关", "left": 140, "top": 975, "right": 610, "bottom": 1055, "fontSize": 36, "color": "WHITE", "bold": true },
+    { "type": "button", "name": "btn_next", "left": 140, "top": 970, "right": 610, "bottom": 1060, "color": "BTN_NEXT" },
+    { "type": "radial", "name": "#sp_nextGlow", "left": 120, "top": 960, "right": 630, "bottom": 1070, "color1": [44, 152, 58], "color2": [10, 15, 28], "alpha": 40 },
+
+    { "type": "text", "name": "txt_btnBack", "text": "返  回", "left": 90, "top": 870, "right": 340, "bottom": 940, "fontSize": 30, "color": "SILVER", "bold": true },
+    { "type": "button", "name": "btn_back", "left": 90, "top": 865, "right": 340, "bottom": 945, "color": "BTN_BACK" },
+
+    { "type": "text", "name": "txt_btnReplay", "text": "重  玩", "left": 410, "top": 870, "right": 660, "bottom": 940, "fontSize": 30, "color": "WHITE", "bold": true },
+    { "type": "button", "name": "btn_replay", "left": 410, "top": 865, "right": 660, "bottom": 945, "color": "BTN_REPLAY" },
+
+    {
+      "type": "group",
+      "name": "node_stats",
+      "left": 80, "top": 480, "right": 670, "bottom": 800,
+      "children": [
+        { "type": "text", "name": "txt_kill", "text": "42", "left": 400, "top": 500, "right": 640, "bottom": 555, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_killLabel", "text": "击 杀 数", "left": 110, "top": 500, "right": 380, "bottom": 555, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "text", "name": "txt_coin", "text": "1,250", "left": 400, "top": 563, "right": 640, "bottom": 618, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_coinLabel", "text": "金 币 获 得", "left": 110, "top": 563, "right": 380, "bottom": 618, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "text", "name": "txt_time", "text": "2:35", "left": 400, "top": 626, "right": 640, "bottom": 681, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_timeLabel", "text": "耗       时", "left": 110, "top": 626, "right": 380, "bottom": 681, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "text", "name": "txt_hp", "text": "85%", "left": 400, "top": 689, "right": 640, "bottom": 744, "fontSize": 30, "color": "GOLD", "bold": true },
+        { "type": "text", "name": "txt_hpLabel", "text": "剩 余 血 量", "left": 110, "top": 689, "right": 380, "bottom": 744, "fontSize": 28, "color": "SILVER" },
+
+        { "type": "solid", "name": "#sp_line0", "left": 110, "top": 561, "right": 640, "bottom": 565, "color": [60, 70, 100], "alpha": 60 },
+        { "type": "solid", "name": "#sp_line1", "left": 110, "top": 624, "right": 640, "bottom": 628, "color": [60, 70, 100], "alpha": 60 },
+        { "type": "solid", "name": "#sp_line2", "left": 110, "top": 687, "right": 640, "bottom": 691, "color": [60, 70, 100], "alpha": 60 },
+
+        { "type": "noise", "name": "sp_statsBg@9", "left": 80, "top": 480, "right": 670, "bottom": 800, "color": [14, 18, 34], "alpha": 210, "magnitude": 6 }
+      ]
+    },
+
+    { "type": "text", "name": "txt_title", "text": "V I C T O R Y !", "left": 80, "top": 370, "right": 670, "bottom": 450, "fontSize": 56, "color": "GOLD", "bold": true },
+    { "type": "radial", "name": "#sp_titleGlow", "left": 100, "top": 350, "right": 650, "bottom": 460, "color1": [255, 180, 30], "color2": [20, 15, 28], "alpha": 50 },
+
+    {
+      "type": "group",
+      "name": "node_stars",
+      "left": 150, "top": 180, "right": 600, "bottom": 360,
+      "children": [
+        { "type": "star", "name": "sp_star2", "left": 470, "top": 220, "size": 100, "color1": [255, 230, 60], "color2": [210, 155, 0] },
+        { "type": "star", "name": "sp_star1", "left": 325, "top": 190, "size": 100, "color1": [255, 230, 60], "color2": [210, 155, 0] },
+        { "type": "star", "name": "sp_star0", "left": 180, "top": 220, "size": 100, "color1": [255, 230, 60], "color2": [210, 155, 0] },
+        { "type": "radial", "name": "#sp_starsGlow", "left": 150, "top": 180, "right": 600, "bottom": 340, "color1": [255, 200, 40], "color2": [15, 12, 28], "alpha": 35 }
+      ]
+    },
+
+    {
+      "type": "noise",
+      "name": "background",
+      "left": 0, "top": 0, "right": 750, "bottom": 1334,
+      "color": [8, 10, 20],
+      "alpha": 230,
+      "magnitude": 6
+    }
+  ]
+}
