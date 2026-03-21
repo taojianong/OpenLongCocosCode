@@ -1,0 +1,34 @@
+{
+    "name": "cocos-design-ruler",
+    "version": "2.0.0",
+    "description": "设计制尺标插件 - 在场景编辑器中叠加标尺、对齐线和设计图",
+    "main": "dist/main.js",
+    "scene-script": "scene-script.js",
+    "author": "taojianlong",
+    "license": "MIT",
+    "panel": {
+        "main": "dist/panels/index.js",
+        "type": "dockable",
+        "title": "设计标尺",
+        "size": {
+            "width": 400,
+            "height": 600
+        }
+    },
+    "main-menu": {
+        "扩展/设计标尺/打开面板": {
+            "message": "cocos-design-ruler:open-panel"
+        },
+        "扩展/设计标尺/切换显示": {
+            "message": "cocos-design-ruler:toggle-visible"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc -w",
+        "dev": "tsc -w --sourceMap",
+        "check": "tsc --noEmit",
+        "clean": "rimraf dist || (if exist dist rmdir /s /q dist)"
+    },
+    "dependencies": {}
+}

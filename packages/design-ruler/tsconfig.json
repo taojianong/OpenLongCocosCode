@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "target": "ES2017",
+        "module": "commonjs",
+        "lib": [
+            "ES2017",
+            "DOM"
+        ],
+        "outDir": "./dist",
+        "rootDir": "./",
+        "declaration": false,
+        "sourceMap": false,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "moduleResolution": "node"
+    },
+    "include": [
+        "editor.d.ts",
+        "main.ts",
+        "panels/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "scene-script.js"
+    ]
+}
