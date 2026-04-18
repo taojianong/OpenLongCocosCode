@@ -6,6 +6,8 @@ const path = require('path');
 const electron = require('electron');
 const RESOURCE_COPY_DATA_FILE_NAME = 'resource-copy.json';
 const RESOURCE_COPY_CONFIG_FILE_NAME = 'resource-copy-config.json';
+const RESOURCE_COPY_HISTORY_FILE_NAME = 'resource-copy-history.json';
+const MAX_HISTORY_ITEMS = 50;
 const META_IMPORTER_MAP = {
     '.png': { importer: 'texture', ver: '2.3.7' },
     '.jpg': { importer: 'texture', ver: '2.3.7' },
@@ -140,36 +142,54 @@ class ResourceCopyHandler {
         }
     }
     copySingleResource(rule) {
-        if (!rule.sourceDir || !rule.targetDir) {
+        const sourceDirs = rule.sourceDirs || (rule.sourceDir ? [rule.sourceDir] : []);
+        if (sourceDirs.length === 0 || !rule.targetDir) {
             Editor.error('[resource-copy] 源目录和目标目录不能为空');
-            return;
+            return { fileCount: 0, metaCount: 0 };
         }
         const rootConfig = this.getRootDirs();
-        const actualSourceDir = this.resolvePath(rule.sourceDir, rootConfig.sourceRoot);
-        if (!fs.existsSync(actualSourceDir)) {
-            Editor.error('[resource-copy] 源目录不存在:', actualSourceDir);
-            return;
-        }
-        if (this.isAbsolutePath(rule.targetDir)) {
-            this.doCopyDir(rule, actualSourceDir, rule.targetDir);
-        }
-        else {
-            if (!rootConfig.exportRoots || rootConfig.exportRoots.length === 0) {
-                Editor.warn('[resource-copy] 目标为相对路径但未配置导出根目录');
-                return;
+        let totalFileCount = 0;
+        let totalMetaCount = 0;
+        for (const sourceDir of sourceDirs) {
+            const actualSourceDir = this.resolvePath(sourceDir, rootConfig.sourceRoot);
+            if (!fs.existsSync(actualSourceDir)) {
+                Editor.error('[resource-copy] 源目录不存在:', actualSourceDir);
+                continue;
             }
-            let copiedAny = false;
-            rootConfig.exportRoots.forEach((exportRoot) => {
-                if (!exportRoot)
-                    return;
-                const actualTargetDir = this.resolvePath(rule.targetDir, exportRoot);
-                this.doCopyDir(rule, actualSourceDir, actualTargetDir);
-                copiedAny = true;
-            });
-            if (!copiedAny) {
-                Editor.warn('[resource-copy] 没有有效的导出根目录');
+            if (this.isAbsolutePath(rule.targetDir)) {
+                const result = this.doCopyDir(rule, actualSourceDir, rule.targetDir);
+                totalFileCount += result.fileCount;
+                totalMetaCount += result.metaCount;
+            }
+            else {
+                if (!rootConfig.exportRoots || rootConfig.exportRoots.length === 0) {
+                    Editor.warn('[resource-copy] 目标为相对路径但未配置导出根目录');
+                    continue;
+                }
+                let copiedAny = false;
+                rootConfig.exportRoots.forEach((exportRoot) => {
+                    if (!exportRoot)
+                        return;
+                    const actualTargetDir = this.resolvePath(rule.targetDir, exportRoot);
+                    const result = this.doCopyDir(rule, actualSourceDir, actualTargetDir);
+                    totalFileCount += result.fileCount;
+                    totalMetaCount += result.metaCount;
+                    copiedAny = true;
+                });
+                if (!copiedAny) {
+                    Editor.warn('[resource-copy] 没有有效的导出根目录');
+                }
             }
         }
+        Editor.log('[resource-copy] 规则拷贝完成: 文件', totalFileCount, '个, meta', totalMetaCount, '个');
+        this.addHistory({
+            ruleName: rule.name || '',
+            fileCount: totalFileCount,
+            metaCount: totalMetaCount,
+            sourceDirs: sourceDirs,
+            targetDir: rule.targetDir,
+        });
+        return { fileCount: totalFileCount, metaCount: totalMetaCount };
     }
     copyRecursive(source, target, rule) {
         const files = fs.readdirSync(source);
@@ -178,14 +198,7 @@ class ResourceCopyHandler {
             const targetPath = path.join(target, file);
             const stat = fs.statSync(sourcePath);
             if (stat.isFile()) {
-                let shouldCopy = false;
-                if (rule.copyRule === 'all') {
-                    shouldCopy = true;
-                }
-                else if (rule.copyRule === 'prefix' && rule.filePrefix) {
-                    shouldCopy = file.startsWith(rule.filePrefix);
-                }
-                if (shouldCopy) {
+                if (this.matchFile(rule, file)) {
                     try {
                         fs.copyFileSync(sourcePath, targetPath);
                     }
@@ -209,7 +222,7 @@ class ResourceCopyHandler {
             }
             catch (e) {
                 Editor.error('[resource-copy] 创建目标目录失败:', targetDir, e);
-                return;
+                return { fileCount: 0, metaCount: 0 };
             }
         }
         let copiedCount = 0;
@@ -218,13 +231,7 @@ class ResourceCopyHandler {
             const filePath = path.join(sourceDir, file);
             const stat = fs.statSync(filePath);
             if (stat.isFile()) {
-                let shouldCopy = false;
-                if (rule.copyRule === 'all') {
-                    shouldCopy = true;
-                }
-                else if (rule.copyRule === 'prefix' && rule.filePrefix) {
-                    shouldCopy = file.startsWith(rule.filePrefix);
-                }
+                const shouldCopy = this.matchFile(rule, file);
                 if (shouldCopy) {
                     const targetFilePath = path.join(targetDir, file);
                     try {
@@ -251,6 +258,106 @@ class ResourceCopyHandler {
             Editor.log('[resource-copy] 生成meta文件:', metaCount, '个');
             this.refreshAssetDb(targetDir);
         }
+        return { fileCount: copiedCount, metaCount };
+    }
+    openInExplorer(dirPath) {
+        if (!dirPath)
+            return false;
+        const rootConfig = this.getRootDirs();
+        let absPath = dirPath;
+        if (!this.isAbsolutePath(dirPath)) {
+            absPath = this.resolvePath(dirPath, rootConfig.sourceRoot);
+        }
+        if (!fs.existsSync(absPath)) {
+            Editor.warn('[resource-copy] 目录不存在:', absPath);
+            return false;
+        }
+        electron.shell.openPath(absPath);
+        return true;
+    }
+    openTargetInExplorer(dirPath) {
+        if (!dirPath)
+            return false;
+        const rootConfig = this.getRootDirs();
+        let absPath = dirPath;
+        if (!this.isAbsolutePath(dirPath)) {
+            if (rootConfig.exportRoots && rootConfig.exportRoots.length > 0) {
+                absPath = this.resolvePath(dirPath, rootConfig.exportRoots[0]);
+            }
+        }
+        if (!fs.existsSync(absPath)) {
+            Editor.warn('[resource-copy] 目录不存在:', absPath);
+            return false;
+        }
+        electron.shell.openPath(absPath);
+        return true;
+    }
+    clearTargetDir(dirPath) {
+        if (!dirPath)
+            return { success: false, fileCount: 0 };
+        const rootConfig = this.getRootDirs();
+        let absPaths = [];
+        if (this.isAbsolutePath(dirPath)) {
+            absPaths = [dirPath];
+        }
+        else {
+            if (rootConfig.exportRoots && rootConfig.exportRoots.length > 0) {
+                absPaths = rootConfig.exportRoots
+                    .filter((e) => e)
+                    .map((e) => this.resolvePath(dirPath, e));
+            }
+        }
+        let totalCleared = 0;
+        for (const absPath of absPaths) {
+            if (!fs.existsSync(absPath))
+                continue;
+            try {
+                const entries = fs.readdirSync(absPath);
+                for (const entry of entries) {
+                    const fullPath = path.join(absPath, entry);
+                    const stat = fs.statSync(fullPath);
+                    if (stat.isFile()) {
+                        fs.unlinkSync(fullPath);
+                        totalCleared++;
+                    }
+                    else if (stat.isDirectory()) {
+                        fs.rmSync(fullPath, { recursive: true, force: true });
+                        totalCleared++;
+                    }
+                }
+            }
+            catch (e) {
+                Editor.error('[resource-copy] 清空目录失败:', absPath, e);
+            }
+        }
+        Editor.log('[resource-copy] 清空目标目录:', dirPath, '共清除', totalCleared, '个条目');
+        return { success: true, fileCount: totalCleared };
+    }
+    matchFile(rule, fileName) {
+        switch (rule.copyRule) {
+            case 'all':
+                return true;
+            case 'prefix':
+                return !!(rule.filePrefix && fileName.startsWith(rule.filePrefix));
+            case 'regex':
+                if (!rule.fileRegex)
+                    return true;
+                try {
+                    return new RegExp(rule.fileRegex).test(fileName);
+                }
+                catch (_a) {
+                    return false;
+                }
+            case 'ext': {
+                if (!rule.fileExts)
+                    return true;
+                const ext = path.extname(fileName).toLowerCase();
+                const allowedExts = rule.fileExts.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+                return allowedExts.includes(ext) || allowedExts.includes(ext.replace('.', ''));
+            }
+            default:
+                return true;
+        }
     }
     openDirectoryDialog(data) {
         const win = electron.BrowserWindow.getFocusedWindow();
@@ -258,14 +365,26 @@ class ResourceCopyHandler {
             Editor.error('[resource-copy] 未找到活动窗口');
             return;
         }
+        const rootConfig = this.getRootDirs();
+        let defaultPath = '';
+        if (data.action === 'browse-source' && rootConfig.sourceRoot && fs.existsSync(rootConfig.sourceRoot)) {
+            defaultPath = rootConfig.sourceRoot;
+        }
+        else if (data.action === 'browse-target' && rootConfig.exportRoots && rootConfig.exportRoots.length > 0) {
+            const validExport = rootConfig.exportRoots.find((e) => e && fs.existsSync(e));
+            if (validExport)
+                defaultPath = validExport;
+        }
         const dialogOptions = {
             properties: ['openDirectory']
         };
+        if (defaultPath) {
+            dialogOptions.defaultPath = defaultPath;
+        }
         electron.dialog.showOpenDialog(win, dialogOptions).then((result) => {
             const filePaths = result.filePaths || result;
             if (filePaths && filePaths.length > 0) {
                 let selectedPath = filePaths[0];
-                const rootConfig = this.getRootDirs();
                 if (data.action === 'browse-source' && rootConfig.sourceRoot) {
                     selectedPath = this.makeRelative(selectedPath, rootConfig.sourceRoot);
                 }
@@ -283,16 +402,22 @@ class ResourceCopyHandler {
                 Editor.Ipc.sendToPanel('cocos-design-ruler.export', 'directory-selected', JSON.stringify({
                     id: data.id,
                     path: selectedPath,
-                    action: data.action
+                    action: data.action,
+                    sourceIndex: data.sourceIndex || 0
                 }));
             }
         });
     }
     copyAllResources(rules) {
+        let totalFiles = 0;
+        let totalMetas = 0;
         rules.forEach((rule) => {
-            this.copySingleResource(rule);
+            const result = this.copySingleResource(rule);
+            totalFiles += result.fileCount;
+            totalMetas += result.metaCount;
         });
-        Editor.log('[resource-copy] 全部拷贝完成，共', rules.length, '条规则');
+        Editor.log('[resource-copy] 全部拷贝完成，共', rules.length, '条规则，', totalFiles, '个文件，', totalMetas, '个meta');
+        return { fileCount: totalFiles, metaCount: totalMetas };
     }
     getRootDirs() {
         const configFile = path.join(this._dataDir, RESOURCE_COPY_CONFIG_FILE_NAME);
@@ -429,6 +554,123 @@ class ResourceCopyHandler {
         }
         catch (e) {
             Editor.warn('[resource-copy] 刷新assetdb异常:', e);
+        }
+    }
+    addHistory(item) {
+        this.ensureDataDir();
+        const historyFile = path.join(this._dataDir, RESOURCE_COPY_HISTORY_FILE_NAME);
+        let history = [];
+        if (fs.existsSync(historyFile)) {
+            try {
+                history = JSON.parse(fs.readFileSync(historyFile, 'utf-8'));
+            }
+            catch (_a) {
+                history = [];
+            }
+        }
+        history.unshift(Object.assign({ id: Date.now().toString(), time: new Date().toLocaleString('zh-CN') }, item));
+        if (history.length > MAX_HISTORY_ITEMS) {
+            history = history.slice(0, MAX_HISTORY_ITEMS);
+        }
+        try {
+            fs.writeFileSync(historyFile, JSON.stringify(history, null, 2), 'utf-8');
+        }
+        catch (e) {
+            Editor.error('[resource-copy] 保存历史记录失败:', e);
+        }
+    }
+    getHistory() {
+        const historyFile = path.join(this._dataDir, RESOURCE_COPY_HISTORY_FILE_NAME);
+        if (!fs.existsSync(historyFile))
+            return [];
+        try {
+            return JSON.parse(fs.readFileSync(historyFile, 'utf-8'));
+        }
+        catch (_a) {
+            return [];
+        }
+    }
+    clearHistory() {
+        const historyFile = path.join(this._dataDir, RESOURCE_COPY_HISTORY_FILE_NAME);
+        try {
+            if (fs.existsSync(historyFile)) {
+                fs.writeFileSync(historyFile, '[]', 'utf-8');
+            }
+        }
+        catch (e) {
+            Editor.error('[resource-copy] 清空历史记录失败:', e);
+        }
+    }
+    exportConfig() {
+        const rules = this.getCopyRules();
+        const rootDirs = this.getRootDirs();
+        return JSON.stringify({ rules, rootDirs, exportTime: new Date().toISOString() }, null, 2);
+    }
+    importConfig(configJson) {
+        try {
+            const data = JSON.parse(configJson);
+            if (data.rules && Array.isArray(data.rules)) {
+                data.rules.forEach((rule) => {
+                    if (!rule.id)
+                        rule.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                    if (rule.copyRule === undefined)
+                        rule.copyRule = 'all';
+                    if (!rule.sourceDirs) {
+                        rule.sourceDirs = rule.sourceDir ? [rule.sourceDir] : [''];
+                    }
+                    if (rule.name === undefined)
+                        rule.name = '';
+                });
+                this.saveCopyRules(data.rules);
+            }
+            if (data.rootDirs) {
+                this.saveRootDirs(data.rootDirs);
+            }
+            return true;
+        }
+        catch (e) {
+            Editor.error('[resource-copy] 导入配置失败:', e);
+            return false;
+        }
+    }
+    importConfigFromFile() {
+        const win = electron.BrowserWindow.getFocusedWindow();
+        if (!win)
+            return false;
+        const result = electron.dialog.showOpenDialogSync(win, {
+            properties: ['openFile'],
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+            title: '导入配置',
+        });
+        if (!result || result.length === 0)
+            return false;
+        try {
+            const content = fs.readFileSync(result[0], 'utf-8');
+            return this.importConfig(content);
+        }
+        catch (e) {
+            Editor.error('[resource-copy] 读取配置文件失败:', e);
+            return false;
+        }
+    }
+    exportConfigToFile() {
+        const win = electron.BrowserWindow.getFocusedWindow();
+        if (!win)
+            return false;
+        const result = electron.dialog.showSaveDialogSync(win, {
+            filters: [{ name: 'JSON', extensions: ['json'] }],
+            title: '导出配置',
+            defaultPath: 'resource-copy-config-export.json',
+        });
+        if (!result)
+            return false;
+        try {
+            fs.writeFileSync(result, this.exportConfig(), 'utf-8');
+            return true;
+        }
+        catch (e) {
+            Editor.error('[resource-copy] 导出配置文件失败:', e);
+            return false;
         }
     }
 }

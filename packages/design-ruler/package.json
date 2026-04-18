@@ -19,8 +19,8 @@
         "main": "dist/panels/resource-copy.js",
         "type": "dockable",
         "title": "资源拷贝界面",
-        "width": 500,
-        "height": 700
+        "width": 800,
+        "height": 900
     },
     "main-menu": {
         "扩展/设计标尺/打开面板": {
@@ -41,6 +41,7 @@
         "clean": "rimraf dist || (if exist dist rmdir /s /q dist)"
     },
     "devDependencies": {
-        "@types/node": "^25.6.0"
+        "@types/node": "^25.6.0",
+        "typescript": "^6.0.3"
     }
 }

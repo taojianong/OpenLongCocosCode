@@ -13,9 +13,11 @@
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
+        "types": ["node"],
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
-        "moduleResolution": "node"
+        "moduleResolution": "node10",
+        "ignoreDeprecations": "6.0"
     },
     "include": [
         "editor.d.ts",

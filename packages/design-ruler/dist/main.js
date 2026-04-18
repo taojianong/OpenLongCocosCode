@@ -389,10 +389,22 @@ module.exports = {
         'copy-single-resource'(event, ruleJson) {
             try {
                 var rule = JSON.parse(ruleJson);
-                _resourceCopyHandler.copySingleResource(rule);
+                var result = _resourceCopyHandler.copySingleResource(rule);
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'copy-result', JSON.stringify({
+                    success: result.fileCount > 0 || result.metaCount >= 0,
+                    fileCount: result.fileCount,
+                    metaCount: result.metaCount,
+                    ruleName: rule.name || ''
+                }));
             }
             catch (e) {
                 Editor.error('[resource-copy] 拷贝单个资源失败:', e);
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'copy-result', JSON.stringify({
+                    success: false,
+                    fileCount: 0,
+                    metaCount: 0,
+                    ruleName: ''
+                }));
             }
         },
         // 拷贝所有资源
@@ -400,11 +412,23 @@ module.exports = {
             try {
                 var rules = JSON.parse(rulesJson);
                 if (Array.isArray(rules)) {
-                    _resourceCopyHandler.copyAllResources(rules);
+                    var result = _resourceCopyHandler.copyAllResources(rules);
+                    Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'copy-result', JSON.stringify({
+                        success: result.fileCount > 0 || result.metaCount >= 0,
+                        fileCount: result.fileCount,
+                        metaCount: result.metaCount,
+                        ruleName: ''
+                    }));
                 }
             }
             catch (e) {
                 Editor.error('[resource-copy] 拷贝所有资源失败:', e);
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'copy-result', JSON.stringify({
+                    success: false,
+                    fileCount: 0,
+                    metaCount: 0,
+                    ruleName: ''
+                }));
             }
         },
         // 刷新meta文件
@@ -419,6 +443,65 @@ module.exports = {
             }
             catch (e) {
                 Editor.error('[resource-copy] 刷新meta失败:', e);
+            }
+        },
+        // 获取历史记录
+        'get-copy-history'() {
+            var history = _resourceCopyHandler.getHistory();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-copy-history', JSON.stringify(history));
+        },
+        // 清空历史记录
+        'clear-copy-history'() {
+            _resourceCopyHandler.clearHistory();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-copy-history', JSON.stringify([]));
+        },
+        // 导入配置
+        'import-config'() {
+            var success = _resourceCopyHandler.importConfigFromFile();
+            if (success) {
+                var rules = _resourceCopyHandler.getCopyRules();
+                var config = _resourceCopyHandler.getRootDirs();
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-copy-rules', JSON.stringify(rules));
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-root-dirs', JSON.stringify(config));
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'import-result', JSON.stringify({ success: true }));
+            }
+            else {
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'import-result', JSON.stringify({ success: false }));
+            }
+        },
+        // 导出配置
+        'export-config'() {
+            var success = _resourceCopyHandler.exportConfigToFile();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'export-result', JSON.stringify({ success }));
+        },
+        // 打开源目录
+        'open-source-dir'(event, data) {
+            try {
+                var obj = JSON.parse(data);
+                _resourceCopyHandler.openInExplorer(obj.path);
+            }
+            catch (e) {
+                Editor.error('[resource-copy] 打开目录失败:', e);
+            }
+        },
+        // 打开目标目录
+        'open-target-dir'(event, dirPath) {
+            try {
+                _resourceCopyHandler.openTargetInExplorer(dirPath);
+            }
+            catch (e) {
+                Editor.error('[resource-copy] 打开目录失败:', e);
+            }
+        },
+        // 清空目标目录
+        'clear-target-dir'(event, dirPath) {
+            try {
+                var result = _resourceCopyHandler.clearTargetDir(dirPath);
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'clear-result', JSON.stringify(result));
+            }
+            catch (e) {
+                Editor.error('[resource-copy] 清空目录失败:', e);
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'clear-result', JSON.stringify({ success: false, fileCount: 0 }));
             }
         },
         //打开导出面板

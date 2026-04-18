@@ -5,10 +5,14 @@ const RESOURCE_PKG_NAME = 'cocos-design-ruler';
 interface CopyRule {
     id: string;
     enabled: boolean;
-    sourceDir: string;
+    name: string;
+    sourceDirs: string[];
+    sourceDir?: string;
     targetDir: string;
-    copyRule: 'all' | 'prefix';
+    copyRule: 'all' | 'prefix' | 'regex' | 'ext';
     filePrefix?: string;
+    fileRegex?: string;
+    fileExts?: string;
     recursive?: boolean;
 }
 
@@ -26,74 +30,197 @@ module.exports = Editor.Panel.extend({
     background: #3a3a3a;
     color: #ffffff;
     font-family: Arial, sans-serif;
+    font-size: 12px;
 }
 .header {
-    padding: 15px;
+    padding: 10px 15px;
     border-bottom: 1px solid #505050;
     background: #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 .header h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: #ff6b6b;
 }
-.content {
+.toolbar {
+    display: flex;
+    gap: 6px;
+}
+.toolbar-btn {
+    padding: 4px 10px;
+    background: #555;
+    color: #ccc;
+    border: 1px solid #666;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+}
+.toolbar-btn:hover {
+    background: #666;
+    color: #fff;
+}
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #505050;
+    background: #333;
+}
+.tab-btn {
+    flex: 1;
+    padding: 8px;
+    background: transparent;
+    color: #999;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.tab-btn:hover {
+    color: #ccc;
+}
+.tab-btn.active {
+    color: #ff6b6b;
+    border-bottom-color: #ff6b6b;
+    background: #3a3a3a;
+}
+.tab-content {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
+    padding: 12px;
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+.root-dir-section {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #404040;
+    border-radius: 4px;
+    border-left: 3px solid #4a90e2;
+}
+.root-dir-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffb347;
+}
+.root-dir-item {
+    margin-bottom: 8px;
+}
+.root-dir-item:last-child {
+    margin-bottom: 0;
+}
+.root-dir-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.root-dir-label {
+    font-size: 11px;
+    color: #ccc;
+    min-width: 70px;
+}
+.export-dir-list {
+    margin-top: 8px;
+}
+.export-dir-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.export-dir-item input {
+    flex: 1;
+}
+.remove-dir-btn {
+    padding: 3px 7px;
+    background: #e63946;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: pointer;
+}
+.remove-dir-btn:hover {
+    background: #d62828;
+}
+.add-dir-btn {
+    width: auto;
+    padding: 5px 10px;
+    margin-top: 6px;
+    background: #4a90e2;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+}
+.add-dir-btn:hover {
+    background: #357abd;
 }
 .rules-list {
-    margin-bottom: 15px;
-    max-height: calc(100% - 120px);
-    overflow-y: auto;
+    margin-bottom: 10px;
 }
 .rule-item {
     background: #404040;
     border: 1px solid #505050;
     border-radius: 4px;
-    margin-bottom: 10px;
-    padding: 12px;
+    margin-bottom: 8px;
+    padding: 10px;
+    transition: border-color 0.2s;
+}
+.rule-item:hover {
+    border-color: #666;
 }
 .rule-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 .rule-header input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 15px;
+    height: 15px;
     cursor: pointer;
 }
 .rule-number {
-    font-size: 12px;
+    font-size: 11px;
     color: #ffb347;
-    min-width: 20px;
+    min-width: 18px;
+}
+.name-input {
+    flex: 1;
+    max-width: 200px;
 }
 .rule-actions {
     margin-left: auto;
     display: flex;
-    gap: 5px;
+    gap: 4px;
 }
 .rule-fields {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 .field-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 .field-label {
     font-size: 11px;
-    color: #cccccc;
-    min-width: 60px;
+    color: #ccc;
+    min-width: 55px;
 }
 .field-input {
     flex: 1;
-    padding: 6px 8px;
+    padding: 5px 7px;
     background: #353535;
     border: 1px solid #555;
     border-radius: 3px;
@@ -109,12 +236,12 @@ module.exports = Editor.Panel.extend({
     color: #888;
 }
 .browse-btn {
-    padding: 5px 10px;
+    padding: 4px 8px;
     background: #555;
     color: #fff;
     border: none;
     border-radius: 3px;
-    font-size: 11px;
+    font-size: 10px;
     cursor: pointer;
     white-space: nowrap;
 }
@@ -122,21 +249,28 @@ module.exports = Editor.Panel.extend({
     background: #666;
 }
 .rule-select {
-    padding: 5px;
+    padding: 4px;
     background: #353535;
     border: 1px solid #555;
     border-radius: 3px;
     color: #fff;
     font-size: 11px;
 }
-.rule-actions-btns {
-    margin-top: 10px;
-    display: flex;
-    gap: 8px;
+.filter-input {
+    flex: 1;
+    padding: 5px 7px;
+    background: #353535;
+    border: 1px solid #555;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 11px;
+}
+.filter-input:disabled {
+    background: #2a2a2a;
+    color: #888;
 }
 .copy-btn {
-    flex: 1;
-    padding: 6px;
+    padding: 4px 10px;
     background: #4a90e2;
     color: #fff;
     border: none;
@@ -148,7 +282,7 @@ module.exports = Editor.Panel.extend({
     background: #357abd;
 }
 .delete-btn {
-    padding: 6px 10px;
+    padding: 4px 8px;
     background: #e63946;
     color: #fff;
     border: none;
@@ -161,13 +295,14 @@ module.exports = Editor.Panel.extend({
 }
 .bottom-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     padding-top: 10px;
     border-top: 1px solid #505050;
+    margin-top: 8px;
 }
 .bottom-btn {
     flex: 1;
-    padding: 10px;
+    padding: 8px;
     background: #ff6b6b;
     color: #fff;
     border: none;
@@ -185,86 +320,9 @@ module.exports = Editor.Panel.extend({
 .bottom-btn.secondary:hover {
     background: #666;
 }
-.prefix-input {
-    flex: 1;
-    padding: 6px 8px;
-    background: #353535;
-    border: 1px solid #555;
-    border-radius: 3px;
-    color: #fff;
-    font-size: 11px;
-}
-.prefix-input:disabled {
-    background: #2a2a2a;
-    color: #888;
-}
-.root-dir-section {
-    margin-bottom: 20px;
-    padding: 12px;
-    background: #404040;
-    border-radius: 4px;
-    border-left: 3px solid #4a90e2;
-}
-.root-dir-section h4 {
-    margin: 0 0 12px 0;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #ffb347;
-}
-.root-dir-item {
-    margin-bottom: 10px;
-}
-.root-dir-item:last-child {
-    margin-bottom: 0;
-}
-.root-dir-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-.root-dir-label {
-    font-size: 12px;
-    color: #cccccc;
-    min-width: 80px;
-}
-.export-dir-list {
-    margin-top: 10px;
-}
-.export-dir-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-.export-dir-item input {
-    flex: 1;
-}
-.remove-dir-btn {
-    padding: 4px 8px;
-    background: #e63946;
-    color: #fff;
-    border: none;
-    border-radius: 3px;
-    font-size: 11px;
-    cursor: pointer;
-}
-.remove-dir-btn:hover {
-    background: #d62828;
-}
-.add-dir-btn {
-    width: auto;
-    padding: 6px 12px;
-    margin-top: 8px;
-    background: #4a90e2;
-}
-.add-dir-btn:hover {
-    background: #357abd;
-}
 .path-type-badge {
-    font-size: 10px;
-    padding: 2px 6px;
+    font-size: 9px;
+    padding: 1px 5px;
     border-radius: 3px;
     background: #555;
     color: #fff;
@@ -277,34 +335,141 @@ module.exports = Editor.Panel.extend({
     background: #ff6b6b;
 }
 .resolved-path {
-    font-size: 10px;
-    color: #888;
-    margin-top: 2px;
+    font-size: 9px;
+    color: #777;
+    margin-top: 1px;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    padding-left: 61px;
+}
+.source-dir-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+.remove-source-btn {
+    padding: 2px 5px;
+    background: #e63946;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: pointer;
+    line-height: 1;
+}
+.remove-source-btn:hover {
+    background: #d62828;
+}
+.add-source-btn {
+    padding: 2px 7px;
+    background: #4a90e2;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 10px;
+    cursor: pointer;
+    margin-top: 2px;
+}
+.add-source-btn:hover {
+    background: #357abd;
+}
+.clear-target-btn {
+    background: #b34700;
+}
+.clear-target-btn:hover:not(:disabled) {
+    background: #e63946;
+}
+.history-item {
+    background: #404040;
+    border: 1px solid #505050;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.history-time {
+    font-size: 10px;
+    color: #888;
+    min-width: 130px;
+}
+.history-name {
+    font-size: 11px;
+    color: #ffb347;
+    min-width: 80px;
+}
+.history-info {
+    font-size: 11px;
+    color: #ccc;
+    flex: 1;
+}
+.history-empty {
+    text-align: center;
+    color: #888;
+    padding: 30px;
+    font-size: 12px;
+}
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+}
+.toast-item {
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #fff;
+    background: #4caf50;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast-item.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+.toast-item.error {
+    background: #e63946;
 }
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 7px;
 }
 ::-webkit-scrollbar-track {
     background: #353535;
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb {
-    background: #555555;
+    background: #555;
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #666666;
+    background: #666;
 }`,
 
     template: `
 <div class="panel">
   <div class="header">
     <h3>资源拷贝</h3>
+    <div class="toolbar">
+      <button id="btn-import" class="toolbar-btn">导入配置</button>
+      <button id="btn-export" class="toolbar-btn">导出配置</button>
+    </div>
   </div>
-  <div class="content">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-rules">拷贝规则</button>
+    <button class="tab-btn" data-tab="tab-history">历史记录</button>
+  </div>
+  <div id="tab-rules" class="tab-content active">
     <div class="root-dir-section">
       <h4>根目录设置</h4>
       <div class="root-dir-item">
@@ -319,15 +484,23 @@ module.exports = Editor.Panel.extend({
           <span class="root-dir-label">导出根目录:</span>
         </div>
         <div id="export-root-list" class="export-dir-list"></div>
-        <button id="add-export-root" class="bottom-btn add-dir-btn">+ 添加导出目录</button>
+        <button id="add-export-root" class="add-dir-btn">+ 添加导出目录</button>
       </div>
     </div>
     <div id="rules-list" class="rules-list"></div>
     <div class="bottom-actions">
+      <button id="add-rule-btn" class="bottom-btn secondary">+ 添加条目</button>
       <button id="select-all-btn" class="bottom-btn secondary">全部选中</button>
       <button id="copy-all-btn" class="bottom-btn">全部拷贝</button>
     </div>
   </div>
+  <div id="tab-history" class="tab-content">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <button id="clear-history-btn" class="toolbar-btn">清空历史</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+  <div id="toast-container" class="toast-container"></div>
 </div>`,
 
     $: {
@@ -338,6 +511,12 @@ module.exports = Editor.Panel.extend({
         rulesList: '#rules-list',
         selectAllBtn: '#select-all-btn',
         copyAllBtn: '#copy-all-btn',
+        addRuleBtn: '#add-rule-btn',
+        toastContainer: '#toast-container',
+        historyList: '#history-list',
+        clearHistoryBtn: '#clear-history-btn',
+        btnImport: '#btn-import',
+        btnExport: '#btn-export',
     },
 
     ready(this: any) {
@@ -346,6 +525,19 @@ module.exports = Editor.Panel.extend({
             sourceRoot: '',
             exportRoots: []
         };
+
+        document.querySelectorAll('.tab-btn').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
+                const tabId = e.target.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach((b: any) => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach((c: any) => c.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById(tabId)?.classList.add('active');
+                if (tabId === 'tab-history') {
+                    sendResourceToMain('get-copy-history');
+                }
+            });
+        });
 
         this.$browseSourceRoot.addEventListener('click', () => {
             sendResourceToMain('browse-root-dir', JSON.stringify({ type: 'source' }));
@@ -358,8 +550,10 @@ module.exports = Editor.Panel.extend({
         this.$sourceRoot.addEventListener('change', (e: any) => {
             this._rootConfig.sourceRoot = e.target.value;
             sendResourceToMain('save-root-dirs', JSON.stringify(this._rootConfig));
-            this.renderRules(); // 重新渲染规则以更新路径类型
+            this.renderRules();
         });
+
+        this.$addRuleBtn.addEventListener('click', () => this.addRule());
 
         this.$selectAllBtn.addEventListener('click', () => {
             const allSelected = this._rules.every((r: CopyRule) => r.enabled);
@@ -371,10 +565,33 @@ module.exports = Editor.Panel.extend({
         this.$copyAllBtn.addEventListener('click', () => {
             const enabledRules = this._rules.filter((r: CopyRule) => r.enabled);
             if (enabledRules.length === 0) {
-                Editor.warn('请先选择要拷贝的规则');
+                this.showToast('请先选择要拷贝的规则', true);
                 return;
             }
             sendResourceToMain('copy-all-resources', JSON.stringify(enabledRules));
+        });
+
+        this.$clearHistoryBtn.addEventListener('click', () => {
+            sendResourceToMain('clear-copy-history');
+            this.showToast('历史记录已清空');
+        });
+
+        this.$btnImport.addEventListener('click', () => {
+            sendResourceToMain('import-config');
+        });
+
+        this.$btnExport.addEventListener('click', () => {
+            sendResourceToMain('export-config');
+        });
+
+        document.addEventListener('keydown', (e: any) => {
+            if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                const allSelected = this._rules.every((r: CopyRule) => r.enabled);
+                this._rules.forEach((r: CopyRule) => r.enabled = !allSelected);
+                this.saveRules();
+                this.renderRules();
+            }
         });
 
         sendResourceToMain('get-copy-rules');
@@ -442,7 +659,8 @@ module.exports = Editor.Panel.extend({
         const newRule: CopyRule = {
             id: Date.now().toString(),
             enabled: true,
-            sourceDir: '',
+            name: '',
+            sourceDirs: [''],
             targetDir: '',
             copyRule: 'all',
             recursive: true,
@@ -469,6 +687,34 @@ module.exports = Editor.Panel.extend({
         }
     },
 
+    getSourceDirs(rule: CopyRule): string[] {
+        if (rule.sourceDirs && rule.sourceDirs.length > 0) {
+            return rule.sourceDirs.filter((d: string) => d !== undefined && d !== null);
+        }
+        if (rule.sourceDir) {
+            return [rule.sourceDir];
+        }
+        return [];
+    },
+
+    showToast(this: any, message: string, isError?: boolean) {
+        const container = this.$toastContainer;
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = 'toast-item' + (isError ? ' error' : '');
+        toast.textContent = message;
+        container.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 300);
+        }, 3000);
+    },
+
     getPathType(this: any, filePath: string): 'relative' | 'absolute' | '' {
         if (!filePath) return '';
         if (/^[a-zA-Z]:\\/.test(filePath) || /^\//.test(filePath)) {
@@ -493,6 +739,42 @@ module.exports = Editor.Panel.extend({
         }
     },
 
+    normalizeRule(this: any, rule: CopyRule) {
+        if (!rule.sourceDirs || rule.sourceDirs.length === 0) {
+            if (rule.sourceDir) {
+                rule.sourceDirs = [rule.sourceDir];
+                delete rule.sourceDir;
+            } else {
+                rule.sourceDirs = [''];
+            }
+        }
+        if (rule.name === undefined) {
+            rule.name = '';
+        }
+        if (!rule.copyRule) {
+            rule.copyRule = 'all';
+        }
+        return rule;
+    },
+
+    getFilterPlaceholder(copyRule: string): string {
+        switch (copyRule) {
+            case 'prefix': return '文件名前缀';
+            case 'regex': return '正则表达式，如: .*\\.png';
+            case 'ext': return '后缀列表，如: .png,.jpg';
+            default: return '';
+        }
+    },
+
+    getFilterValue(rule: CopyRule): string {
+        switch (rule.copyRule) {
+            case 'prefix': return rule.filePrefix || '';
+            case 'regex': return rule.fileRegex || '';
+            case 'ext': return rule.fileExts || '';
+            default: return '';
+        }
+    },
+
     renderRules(this: any) {
         const list = this.$rulesList;
         list.innerHTML = '';
@@ -503,12 +785,26 @@ module.exports = Editor.Panel.extend({
         }
 
         this._rules.forEach((rule: CopyRule, index: number) => {
-            const sourceType = this.getPathType(rule.sourceDir);
+            this.normalizeRule(rule);
+            const sourceDirs = this.getSourceDirs(rule);
             const targetType = this.getPathType(rule.targetDir);
-            const sourceTypeText = sourceType === 'relative' ? '相对' : '绝对';
             const targetTypeText = targetType === 'relative' ? '相对' : '绝对';
-            const resolvedSource = this.getResolvedPath(rule.sourceDir, 'source');
             const resolvedTarget = this.getResolvedPath(rule.targetDir, 'target');
+
+            const sourceDirRows = sourceDirs.map((src: string, srcIdx: number) => {
+                const srcType = this.getPathType(src);
+                const srcTypeText = srcType === 'relative' ? '相对' : '绝对';
+                const resolvedSrc = this.getResolvedPath(src, 'source');
+                return `
+                    <div class="source-dir-item">
+                        <input type="text" class="field-input source-dir-input" placeholder="源目录${sourceDirs.length > 1 ? (srcIdx + 1) : ''}" value="${src}" data-id="${rule.id}" data-source-index="${srcIdx}">
+                        <button class="browse-btn" data-action="browse-source" data-id="${rule.id}" data-source-index="${srcIdx}">浏览</button>
+                        <button class="browse-btn open-dir-btn" data-action="open-source" data-id="${rule.id}" data-source-index="${srcIdx}" ${!src ? 'disabled style="opacity:0.4"' : ''}>打开</button>
+                        <span class="path-type-badge ${srcType}">${srcTypeText}</span>
+                        ${sourceDirs.length > 1 ? '<button class="remove-source-btn" data-id="' + rule.id + '" data-source-index="' + srcIdx + '">-</button>' : ''}
+                    </div>
+                    <div class="resolved-path" style="padding-left:68px">→ ${resolvedSrc}</div>`;
+            }).join('');
 
             const item = document.createElement('div');
             item.className = 'rule-item';
@@ -516,6 +812,7 @@ module.exports = Editor.Panel.extend({
                 <div class="rule-header">
                     <input type="checkbox" ${rule.enabled ? 'checked' : ''} data-id="${rule.id}">
                     <span class="rule-number">#${index + 1}</span>
+                    <input type="text" class="field-input name-input" placeholder="备注名" value="${rule.name || ''}" data-field="name" data-id="${rule.id}" style="flex:1;max-width:150px;">
                     <div class="rule-actions">
                         <button class="copy-btn" data-id="${rule.id}">拷贝</button>
                         <button class="delete-btn" data-id="${rule.id}">删除</button>
@@ -524,15 +821,15 @@ module.exports = Editor.Panel.extend({
                 <div class="rule-fields">
                     <div class="field-row">
                         <span class="field-label">源目录:</span>
-                        <input type="text" class="field-input" placeholder="选择源目录" value="${rule.sourceDir}" data-field="sourceDir" data-id="${rule.id}">
-                        <button class="browse-btn" data-action="browse-source" data-id="${rule.id}">浏览</button>
-                        <span class="path-type-badge ${sourceType}">${sourceTypeText}</span>
                     </div>
-                    <div class="resolved-path" style="padding-left:68px">→ ${resolvedSource}</div>
-                    <div class="field-row">
+                    ${sourceDirRows}
+                    <button class="add-source-btn" data-id="${rule.id}">+ 添加源目录</button>
+                    <div class="field-row" style="margin-top:8px">
                         <span class="field-label">目标目录:</span>
-                        <input type="text" class="field-input" placeholder="选择目标目录" value="${rule.targetDir}" data-field="targetDir" data-id="${rule.id}">
+                        <input type="text" class="field-input target-dir-input" placeholder="选择目标目录" value="${rule.targetDir}" data-field="targetDir" data-id="${rule.id}">
                         <button class="browse-btn" data-action="browse-target" data-id="${rule.id}">浏览</button>
+                        <button class="browse-btn open-dir-btn" data-action="open-target" data-id="${rule.id}" ${!rule.targetDir ? 'disabled style="opacity:0.4"' : ''}>打开</button>
+                        <button class="browse-btn clear-target-btn" data-action="clear-target" data-id="${rule.id}" ${!rule.targetDir ? 'disabled style="opacity:0.4"' : ''}>清空</button>
                         <span class="path-type-badge ${targetType}">${targetTypeText}</span>
                     </div>
                     <div class="resolved-path" style="padding-left:68px">→ ${resolvedTarget}</div>
@@ -548,89 +845,201 @@ module.exports = Editor.Panel.extend({
                         <select class="rule-select" data-field="copyRule" data-id="${rule.id}">
                             <option value="all" ${rule.copyRule === 'all' ? 'selected' : ''}>全部文件</option>
                             <option value="prefix" ${rule.copyRule === 'prefix' ? 'selected' : ''}>文件名开头</option>
+                            <option value="regex" ${rule.copyRule === 'regex' ? 'selected' : ''}>正则匹配</option>
+                            <option value="ext" ${rule.copyRule === 'ext' ? 'selected' : ''}>文件后缀</option>
                         </select>
-                        <input type="text" class="prefix-input" placeholder="文件名前缀" value="${rule.filePrefix || ''}" data-field="filePrefix" data-id="${rule.id}" ${rule.copyRule !== 'prefix' ? 'disabled' : ''}>
+                        <input type="text" class="filter-input filter-value-input" placeholder="${this.getFilterPlaceholder(rule.copyRule)}" value="${this.getFilterValue(rule)}" data-field="filterValue" data-id="${rule.id}" ${rule.copyRule === 'all' ? 'disabled' : ''}>
                     </div>
                 </div>
             `;
             list.appendChild(item);
         });
 
-        // 使用 textContent 设置输入框的值，避免特殊字符问题
-        list.querySelectorAll('.rule-item .field-input').forEach((input: any) => {
-            const rule = this._rules.find((r: CopyRule) => r.id === input.dataset.id);
-            if (rule) {
-                input.value = rule[input.dataset.field] || '';
-            }
+        // 勾选
+        list.querySelectorAll('.rule-item input[type="checkbox"]:not([data-field])').forEach((cb: any) => {
+            cb.addEventListener('change', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    rule.enabled = e.target.checked;
+                    this.saveRules();
+                }
+            });
         });
 
-        list.querySelector('input[type="checkbox"]')?.addEventListener('change', (e: any) => {
-            const id = e.target.dataset.id;
-            const rule = this._rules.find((r: CopyRule) => r.id === id);
-            if (rule) {
-                rule.enabled = e.target.checked;
-                this.saveRules();
-            }
-        });
-
+        // 删除
         list.querySelectorAll('.delete-btn').forEach((btn: any) => {
             btn.addEventListener('click', (e: any) => {
                 this.deleteRule(e.target.dataset.id);
             });
         });
 
+        // 拷贝
         list.querySelectorAll('.copy-btn').forEach((btn: any) => {
             btn.addEventListener('click', (e: any) => {
                 this.copySingleRule(e.target.dataset.id);
             });
         });
 
-        list.querySelectorAll('.browse-btn').forEach((btn: any) => {
+        // 浏览按钮 - 源目录
+        list.querySelectorAll('.browse-btn[data-action="browse-source"]').forEach((btn: any) => {
             btn.addEventListener('click', (e: any) => {
                 const id = e.target.dataset.id;
-                const action = e.target.dataset.action;
-                sendResourceToMain('browse-directory', JSON.stringify({ id, action }));
+                const sourceIndex = parseInt(e.target.dataset.sourceIndex) || 0;
+                sendResourceToMain('browse-directory', JSON.stringify({ id, action: 'browse-source', sourceIndex }));
             });
         });
 
-        Array.from(list.querySelectorAll('.rule-item .field-input')).forEach((input: any) => {
-            input.addEventListener('change', (e: any) => {
+        // 浏览按钮 - 目标目录
+        list.querySelectorAll('.browse-btn[data-action="browse-target"]').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
                 const id = e.target.dataset.id;
-                const field = e.target.dataset.field;
+                sendResourceToMain('browse-directory', JSON.stringify({ id, action: 'browse-target' }));
+            });
+        });
+
+        // 打开源目录
+        list.querySelectorAll('.open-dir-btn[data-action="open-source"]').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
+                const id = e.target.dataset.id;
+                const srcIdx = parseInt(e.target.dataset.sourceIndex) || 0;
                 const rule = this._rules.find((r: CopyRule) => r.id === id);
                 if (rule) {
-                    rule[field] = e.target.value;
+                    this.normalizeRule(rule);
+                    const src = rule.sourceDirs[srcIdx];
+                    if (src) sendResourceToMain('open-source-dir', JSON.stringify({ path: src }));
+                }
+            });
+        });
+
+        // 打开目标目录
+        list.querySelectorAll('.open-dir-btn[data-action="open-target"]').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule && rule.targetDir) {
+                    sendResourceToMain('open-target-dir', rule.targetDir);
+                }
+            });
+        });
+
+        // 清空目标目录
+        list.querySelectorAll('.clear-target-btn').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule && rule.targetDir) {
+                    const nameSuffix = rule.name ? ` "${rule.name}"` : '';
+                    if (!confirm(`确认清空${nameSuffix}的目标目录内容？此操作不可撤销！`)) return;
+                    sendResourceToMain('clear-target-dir', rule.targetDir);
+                }
+            });
+        });
+
+        // 备注名输入
+        list.querySelectorAll('.name-input').forEach((input: any) => {
+            input.addEventListener('change', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    rule.name = e.target.value;
                     this.saveRules();
                 }
             });
         });
 
+        // 源目录输入
+        list.querySelectorAll('.source-dir-input').forEach((input: any) => {
+            input.addEventListener('change', (e: any) => {
+                const id = e.target.dataset.id;
+                const srcIdx = parseInt(e.target.dataset.sourceIndex);
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    this.normalizeRule(rule);
+                    rule.sourceDirs[srcIdx] = e.target.value;
+                    this.saveRules();
+                }
+            });
+        });
+
+        // 目标目录输入
+        list.querySelectorAll('.target-dir-input').forEach((input: any) => {
+            input.addEventListener('change', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    rule.targetDir = e.target.value;
+                    this.saveRules();
+                }
+            });
+        });
+
+        // 删除源目录
+        list.querySelectorAll('.remove-source-btn').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
+                const id = e.target.dataset.id;
+                const srcIdx = parseInt(e.target.dataset.sourceIndex);
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    this.normalizeRule(rule);
+                    rule.sourceDirs.splice(srcIdx, 1);
+                    if (rule.sourceDirs.length === 0) rule.sourceDirs = [''];
+                    this.saveRules();
+                    this.renderRules();
+                }
+            });
+        });
+
+        // 添加源目录
+        list.querySelectorAll('.add-source-btn').forEach((btn: any) => {
+            btn.addEventListener('click', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    this.normalizeRule(rule);
+                    rule.sourceDirs.push('');
+                    this.saveRules();
+                    this.renderRules();
+                }
+            });
+        });
+
+        // 拷贝模式
         list.querySelectorAll('.rule-item .rule-select').forEach((select: any) => {
             select.addEventListener('change', (e: any) => {
                 const id = e.target.dataset.id;
                 const rule = this._rules.find((r: CopyRule) => r.id === id);
                 if (rule) {
                     rule.copyRule = e.target.value;
-                    const prefixInput = e.target.parentElement.querySelector('.prefix-input');
-                    if (prefixInput) {
-                        prefixInput.disabled = rule.copyRule !== 'prefix';
+                    const filterInput = e.target.parentElement.querySelector('.filter-value-input');
+                    if (filterInput) {
+                        filterInput.disabled = rule.copyRule === 'all';
+                        filterInput.placeholder = this.getFilterPlaceholder(rule.copyRule);
+                        filterInput.value = '';
+                    }
+                    this.saveRules();
+                    this.renderRules();
+                }
+            });
+        });
+
+        // 筛选值输入
+        list.querySelectorAll('.rule-item .filter-value-input').forEach((input: any) => {
+            input.addEventListener('change', (e: any) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r: CopyRule) => r.id === id);
+                if (rule) {
+                    switch (rule.copyRule) {
+                        case 'prefix': rule.filePrefix = e.target.value; break;
+                        case 'regex': rule.fileRegex = e.target.value; break;
+                        case 'ext': rule.fileExts = e.target.value; break;
                     }
                     this.saveRules();
                 }
             });
         });
 
-        list.querySelectorAll('.rule-item .prefix-input').forEach((input: any) => {
-            input.addEventListener('change', (e: any) => {
-                const id = e.target.dataset.id;
-                const rule = this._rules.find((r: CopyRule) => r.id === id);
-                if (rule) {
-                    rule.filePrefix = e.target.value;
-                    this.saveRules();
-                }
-            });
-        });
-
+        // 递归
         list.querySelectorAll('.rule-item input[data-field="recursive"]').forEach((checkbox: any) => {
             checkbox.addEventListener('change', (e: any) => {
                 const id = e.target.dataset.id;
@@ -642,37 +1051,57 @@ module.exports = Editor.Panel.extend({
             });
         });
 
-        const addBtn = document.createElement('button');
-        addBtn.className = 'bottom-btn secondary';
-        addBtn.style.marginTop = '15px';
-        addBtn.textContent = '+ 添加条目';
-        addBtn.addEventListener('click', () => this.addRule());
-        list.appendChild(addBtn);
-
-        // 设置输入框的初始值，在事件监听器绑定后
-        Array.from(list.querySelectorAll('.rule-item .field-input')).forEach((input: any) => {
+        // 设置输入框初始值
+        Array.from(list.querySelectorAll('.source-dir-input')).forEach((input: any) => {
             const rule = this._rules.find((r: CopyRule) => r.id === input.dataset.id);
             if (rule) {
-                input.value = rule[input.dataset.field] || '';
-                Editor.log('[resource-copy] Set rule input value:', input.dataset.id, input.dataset.field, input.value);
+                this.normalizeRule(rule);
+                const srcIdx = parseInt(input.dataset.sourceIndex);
+                input.value = rule.sourceDirs[srcIdx] || '';
             }
         });
 
-        Array.from(list.querySelectorAll('.rule-item .rule-select')).forEach((select: any) => {
-            const rule = this._rules.find((r: CopyRule) => r.id === select.dataset.id);
+        Array.from(list.querySelectorAll('.target-dir-input')).forEach((input: any) => {
+            const rule = this._rules.find((r: CopyRule) => r.id === input.dataset.id);
             if (rule) {
-                const prefixInput = select.parentElement.querySelector('.prefix-input');
-                if (prefixInput) {
-                    prefixInput.disabled = rule.copyRule !== 'prefix';
-                }
+                input.value = rule.targetDir || '';
             }
         });
 
-        Array.from(list.querySelectorAll('.rule-item .prefix-input')).forEach((input: any) => {
+        Array.from(list.querySelectorAll('.name-input')).forEach((input: any) => {
             const rule = this._rules.find((r: CopyRule) => r.id === input.dataset.id);
             if (rule) {
-                input.value = rule.filePrefix || '';
+                input.value = rule.name || '';
             }
+        });
+
+        Array.from(list.querySelectorAll('.filter-value-input')).forEach((input: any) => {
+            const rule = this._rules.find((r: CopyRule) => r.id === input.dataset.id);
+            if (rule) {
+                input.value = this.getFilterValue(rule);
+            }
+        });
+    },
+
+    renderHistory(this: any, history: any[]) {
+        const list = this.$historyList;
+        if (!list) return;
+        list.innerHTML = '';
+
+        if (!history || history.length === 0) {
+            list.innerHTML = '<div class="history-empty">暂无拷贝历史记录</div>';
+            return;
+        }
+
+        history.forEach((item: any) => {
+            const el = document.createElement('div');
+            el.className = 'history-item';
+            el.innerHTML = `
+                <span class="history-time">${item.time}</span>
+                <span class="history-name">${item.ruleName || '-'}</span>
+                <span class="history-info">${item.fileCount}个文件，${item.metaCount}个meta</span>
+            `;
+            list.appendChild(el);
         });
     },
 
@@ -690,27 +1119,25 @@ module.exports = Editor.Panel.extend({
                 this._rootConfig = JSON.parse(configJson);
                 this.$sourceRoot.value = this._rootConfig.sourceRoot || '';
                 this.renderExportRoots();
-                this.renderRules(); // 重新渲染规则以更新路径类型
+                this.renderRules();
             } catch (e: any) {
                 Editor.error('[resource-copy] 解析根目录配置失败:', e);
             }
         },
         'directory-selected'(this: any, event: any, data: string) {
             try {
-                const { id, path, action } = JSON.parse(data);
-                Editor.log('[resource-copy] directory-selected:', { id, path, action });
+                const { id, path, action, sourceIndex } = JSON.parse(data);
                 const rule = this._rules.find((r: CopyRule) => r.id === id);
                 if (rule) {
                     if (action === 'browse-source') {
-                        rule.sourceDir = path;
+                        this.normalizeRule(rule);
+                        const idx = sourceIndex || 0;
+                        rule.sourceDirs[idx] = path;
                     } else {
                         rule.targetDir = path;
                     }
-                    Editor.log('[resource-copy] Updated rule:', rule);
                 }
-                // 先保存规则
                 this.saveRules();
-                // 然后重新渲染规则列表
                 this.renderRules();
             } catch (e: any) {
                 Editor.error('[resource-copy] 处理目录选择失败:', e);
@@ -719,7 +1146,6 @@ module.exports = Editor.Panel.extend({
         'root-dir-selected'(this: any, event: any, data: string) {
             try {
                 const { type, path, index } = JSON.parse(data);
-                Editor.log('[resource-copy] root-dir-selected:', { type, path, index });
                 if (type === 'source') {
                     this._rootConfig.sourceRoot = path;
                     this.$sourceRoot.value = path;
@@ -728,13 +1154,27 @@ module.exports = Editor.Panel.extend({
                 } else if (type === 'export-edit') {
                     this._rootConfig.exportRoots[index] = path;
                 }
-                // 先保存根目录配置
                 sendResourceToMain('save-root-dirs', JSON.stringify(this._rootConfig));
-                // 然后渲染导出根目录列表和规则列表
                 this.renderExportRoots();
-                this.renderRules(); // 重新渲染规则以更新路径类型
+                this.renderRules();
             } catch (e: any) {
                 Editor.error('[resource-copy] 处理根目录选择失败:', e);
+            }
+        },
+        'copy-result'(this: any, event: any, resultJson: string) {
+            try {
+                const { success, fileCount, metaCount, ruleName } = JSON.parse(resultJson);
+                if (success && fileCount > 0) {
+                    const nameSuffix = ruleName ? ` (${ruleName})` : '';
+                    const metaSuffix = metaCount > 0 ? `，生成meta ${metaCount}个` : '';
+                    this.showToast(`拷贝成功${nameSuffix}: ${fileCount}个文件${metaSuffix}`);
+                } else if (success && fileCount === 0) {
+                    this.showToast('没有文件需要拷贝', true);
+                } else {
+                    this.showToast('拷贝失败', true);
+                }
+            } catch (e: any) {
+                Editor.error('[resource-copy] 处理拷贝结果失败:', e);
             }
         },
         'meta-refresh-result'(this: any, event: any, resultJson: string) {
@@ -745,6 +1185,42 @@ module.exports = Editor.Panel.extend({
                 }
             } catch (e: any) {
                 Editor.error('[resource-copy] 处理meta刷新结果失败:', e);
+            }
+        },
+        'update-copy-history'(this: any, event: any, historyJson: string) {
+            try {
+                const history = JSON.parse(historyJson);
+                this.renderHistory(history);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 解析历史记录失败:', e);
+            }
+        },
+        'import-result'(this: any, event: any, resultJson: string) {
+            try {
+                const { success } = JSON.parse(resultJson);
+                this.showToast(success ? '导入配置成功' : '导入配置失败', !success);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 处理导入结果失败:', e);
+            }
+        },
+        'export-result'(this: any, event: any, resultJson: string) {
+            try {
+                const { success } = JSON.parse(resultJson);
+                this.showToast(success ? '导出配置成功' : '导出配置失败', !success);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 处理导出结果失败:', e);
+            }
+        },
+        'clear-result'(this: any, event: any, resultJson: string) {
+            try {
+                const { success, fileCount } = JSON.parse(resultJson);
+                if (success) {
+                    this.showToast(`目标目录已清空，共删除 ${fileCount} 个条目`);
+                } else {
+                    this.showToast('清空失败', true);
+                }
+            } catch (e: any) {
+                Editor.error('[resource-copy] 处理清空结果失败:', e);
             }
         },
     },
