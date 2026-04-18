@@ -7,7 +7,9 @@ const electron = require('electron');
 const RESOURCE_COPY_DATA_FILE_NAME = 'resource-copy.json';
 const RESOURCE_COPY_CONFIG_FILE_NAME = 'resource-copy-config.json';
 const RESOURCE_COPY_HISTORY_FILE_NAME = 'resource-copy-history.json';
+const RESOURCE_COPY_UNDO_FILE_NAME = 'resource-copy-undo.json';
 const MAX_HISTORY_ITEMS = 50;
+const STREAM_COPY_THRESHOLD = 5 * 1024 * 1024;
 
 const META_IMPORTER_MAP: { [ext: string]: { importer: string; ver: string } } = {
     '.png': { importer: 'texture', ver: '2.3.7' },
@@ -133,6 +135,7 @@ export interface ResourceCopyRule {
     fileRegex?: string;
     fileExts?: string;
     recursive?: boolean;
+    incremental?: boolean;
 }
 
 export interface CopyHistoryItem {
@@ -143,6 +146,18 @@ export interface CopyHistoryItem {
     metaCount: number;
     sourceDirs: string[];
     targetDir: string;
+}
+
+export interface CopyLogEntry {
+    time: string;
+    level: 'info' | 'warn' | 'error';
+    message: string;
+}
+
+export interface UndoEntry {
+    targetPath: string;
+    backupContent: string | null;
+    wasNew: boolean;
 }
 
 export interface RootDirConfig {
@@ -157,6 +172,38 @@ export class ResourceCopyHandler {
     constructor(dataDir: string) {
         this._dataDir = dataDir;
         this._dataFile = path.join(dataDir, RESOURCE_COPY_DATA_FILE_NAME);
+    }
+
+    private _logs: CopyLogEntry[] = [];
+    private _maxLogs = 200;
+
+    log(level: 'info' | 'warn' | 'error', message: string) {
+        const entry: CopyLogEntry = {
+            time: new Date().toLocaleTimeString('zh-CN'),
+            level,
+            message,
+        };
+        this._logs.unshift(entry);
+        if (this._logs.length > this._maxLogs) {
+            this._logs = this._logs.slice(0, this._maxLogs);
+        }
+        if (level === 'error') {
+            Editor.error('[resource-copy] ' + message);
+        } else if (level === 'warn') {
+            Editor.warn('[resource-copy] ' + message);
+        } else {
+            Editor.log('[resource-copy] ' + message);
+        }
+        Editor.Ipc.sendToPanel('cocos-design-ruler.export', 'copy-log', JSON.stringify(entry));
+    }
+
+    getLogs(): CopyLogEntry[] {
+        return this._logs;
+    }
+
+    clearLogs() {
+        this._logs = [];
+        Editor.Ipc.sendToPanel('cocos-design-ruler.export', 'copy-log-clear');
     }
 
     ensureDataDir() {
@@ -237,9 +284,122 @@ export class ResourceCopyHandler {
         return { fileCount: totalFileCount, metaCount: totalMetaCount };
     }
 
+    doCopyDir(rule: ResourceCopyRule, sourceDir: string, targetDir: string): { fileCount: number; metaCount: number; skippedCount: number } {
+        if (!fs.existsSync(targetDir)) {
+            try {
+                fs.mkdirSync(targetDir, { recursive: true });
+            } catch (e: any) {
+                this.log('error', '创建目标目录失败: ' + targetDir + ' ' + e.message);
+                return { fileCount: 0, metaCount: 0, skippedCount: 0 };
+            }
+        }
+
+        const allFiles = this.collectFiles(sourceDir, rule);
+        const total = allFiles.length;
+        let copiedCount = 0;
+        let skippedCount = 0;
+        const undoEntries: UndoEntry[] = [];
+
+        this.log('info', `开始拷贝: ${sourceDir} -> ${targetDir}，共扫描 ${total} 个文件`);
+
+        for (let i = 0; i < allFiles.length; i++) {
+            const { relativePath, sourcePath } = allFiles[i];
+            const targetFilePath = path.join(targetDir, relativePath);
+
+            const targetDirForFile = path.dirname(targetFilePath);
+            if (!fs.existsSync(targetDirForFile)) {
+                fs.mkdirSync(targetDirForFile, { recursive: true });
+            }
+
+            if (rule.incremental) {
+                if (fs.existsSync(targetFilePath)) {
+                    const srcStat = fs.statSync(sourcePath);
+                    const tgtStat = fs.statSync(targetFilePath);
+                    if (srcStat.mtimeMs <= tgtStat.mtimeMs && srcStat.size === tgtStat.size) {
+                        skippedCount++;
+                        continue;
+                    }
+                }
+            }
+
+            let backupContent: string | null = null;
+            let wasNew = true;
+            if (fs.existsSync(targetFilePath)) {
+                wasNew = false;
+                try {
+                    backupContent = fs.readFileSync(targetFilePath).toString('base64');
+                } catch { backupContent = null; }
+            }
+
+            try {
+                this.copyFile(sourcePath, targetFilePath);
+                undoEntries.push({ targetPath: targetFilePath, backupContent, wasNew });
+                copiedCount++;
+            } catch (e: any) {
+                this.log('error', '拷贝文件失败: ' + relativePath + ' ' + e.message);
+            }
+
+            if (total > 5) {
+                Editor.Ipc.sendToPanel('cocos-design-ruler.export', 'copy-progress', JSON.stringify({
+                    current: i + 1,
+                    total,
+                    fileName: relativePath,
+                }));
+            }
+        }
+
+        this.log('info', `拷贝完成: ${copiedCount}个文件${skippedCount > 0 ? '，跳过' + skippedCount + '个(增量)' : ''}${rule.recursive === false ? '(仅当前目录)' : '(递归)'}`);
+
+        const isRecursive = rule.recursive !== false;
+        const metaCount = this.generateMissingMetaFiles(targetDir, isRecursive);
+        if (metaCount > 0) {
+            this.log('info', `生成meta文件: ${metaCount}个`);
+            this.refreshAssetDb(targetDir);
+        }
+
+        this.saveUndo(undoEntries);
+
+        return { fileCount: copiedCount, metaCount, skippedCount };
+    }
+
+    collectFiles(sourceDir: string, rule: ResourceCopyRule, prefix: string = ''): { relativePath: string; sourcePath: string }[] {
+        const result: { relativePath: string; sourcePath: string }[] = [];
+        if (!fs.existsSync(sourceDir)) return result;
+
+        const entries = fs.readdirSync(sourceDir);
+        for (const entry of entries) {
+            const fullPath = path.join(sourceDir, entry);
+            const stat = fs.statSync(fullPath);
+            const relPath = prefix ? prefix + '/' + entry : entry;
+
+            if (stat.isFile()) {
+                if (this.matchFile(rule, entry)) {
+                    result.push({ relativePath: relPath, sourcePath: fullPath });
+                }
+            } else if (stat.isDirectory() && rule.recursive !== false) {
+                result.push(...this.collectFiles(fullPath, rule, relPath));
+            }
+        }
+        return result;
+    }
+
+    copyFile(src: string, dest: string) {
+        const stat = fs.statSync(src);
+        if (stat.size >= STREAM_COPY_THRESHOLD) {
+            const readStream = fs.createReadStream(src);
+            const writeStream = fs.createWriteStream(dest);
+            return new Promise<void>((resolve, reject) => {
+                writeStream.on('error', reject);
+                readStream.on('error', reject);
+                writeStream.on('finish', resolve);
+                readStream.pipe(writeStream);
+            });
+        }
+        fs.copyFileSync(src, dest);
+    }
+
     copyRecursive(source: string, target: string, rule: ResourceCopyRule) {
         const files = fs.readdirSync(source);
-
         files.forEach((file: string) => {
             const sourcePath = path.join(source, file);
             const targetPath = path.join(target, file);
@@ -248,9 +408,9 @@ export class ResourceCopyHandler {
             if (stat.isFile()) {
                 if (this.matchFile(rule, file)) {
                     try {
-                        fs.copyFileSync(sourcePath, targetPath);
+                        this.copyFile(sourcePath, targetPath);
                     } catch (e: any) {
-                        Editor.error('[resource-copy] 拷贝文件失败:', file, e);
+                        this.log('error', '拷贝文件失败: ' + file + ' ' + e.message);
                     }
                 }
             } else if (stat.isDirectory()) {
@@ -260,54 +420,6 @@ export class ResourceCopyHandler {
                 this.copyRecursive(sourcePath, targetPath, rule);
             }
         });
-    }
-
-    doCopyDir(rule: ResourceCopyRule, sourceDir: string, targetDir: string): { fileCount: number; metaCount: number } {
-        if (!fs.existsSync(targetDir)) {
-            try {
-                fs.mkdirSync(targetDir, { recursive: true });
-            } catch (e: any) {
-                Editor.error('[resource-copy] 创建目标目录失败:', targetDir, e);
-                return { fileCount: 0, metaCount: 0 };
-            }
-        }
-
-        let copiedCount = 0;
-        const files = fs.readdirSync(sourceDir);
-        files.forEach((file: string) => {
-            const filePath = path.join(sourceDir, file);
-            const stat = fs.statSync(filePath);
-
-            if (stat.isFile()) {
-                const shouldCopy = this.matchFile(rule, file);
-                if (shouldCopy) {
-                    const targetFilePath = path.join(targetDir, file);
-                    try {
-                        fs.copyFileSync(filePath, targetFilePath);
-                        copiedCount++;
-                    } catch (e: any) {
-                        Editor.error('[resource-copy] 拷贝文件失败:', file, e);
-                    }
-                }
-            } else if (stat.isDirectory() && rule.recursive !== false) {
-                const targetSubDir = path.join(targetDir, file);
-                if (!fs.existsSync(targetSubDir)) {
-                    fs.mkdirSync(targetSubDir, { recursive: true });
-                }
-                this.copyRecursive(filePath, targetSubDir, rule);
-            }
-        });
-
-        Editor.log('[resource-copy] 拷贝完成:', sourceDir, '->', targetDir, '共', copiedCount, '个文件', rule.recursive === false ? '(仅文件)' : '(递归)');
-
-        const isRecursive = rule.recursive !== false;
-        const metaCount = this.generateMissingMetaFiles(targetDir, isRecursive);
-        if (metaCount > 0) {
-            Editor.log('[resource-copy] 生成meta文件:', metaCount, '个');
-            this.refreshAssetDb(targetDir);
-        }
-
-        return { fileCount: copiedCount, metaCount };
     }
 
     openInExplorer(dirPath: string) {
@@ -382,6 +494,61 @@ export class ResourceCopyHandler {
         }
         Editor.log('[resource-copy] 清空目标目录:', dirPath, '共清除', totalCleared, '个条目');
         return { success: true, fileCount: totalCleared };
+    }
+
+    saveUndo(entries: UndoEntry[]) {
+        if (entries.length === 0) return;
+        const undoFile = path.join(this._dataDir, RESOURCE_COPY_UNDO_FILE_NAME);
+        try {
+            fs.writeFileSync(undoFile, JSON.stringify({ time: new Date().toISOString(), entries }, null, 2), 'utf-8');
+        } catch (e: any) {
+            Editor.error('[resource-copy] 保存撤销数据失败:', e);
+        }
+    }
+
+    undoLastCopy(): { success: boolean; restoredCount: number; deletedCount: number } {
+        const undoFile = path.join(this._dataDir, RESOURCE_COPY_UNDO_FILE_NAME);
+        if (!fs.existsSync(undoFile)) {
+            this.log('warn', '没有可撤销的操作');
+            return { success: false, restoredCount: 0, deletedCount: 0 };
+        }
+
+        try {
+            const data = JSON.parse(fs.readFileSync(undoFile, 'utf-8'));
+            const entries: UndoEntry[] = data.entries || [];
+            let restoredCount = 0;
+            let deletedCount = 0;
+
+            for (const entry of entries) {
+                if (entry.wasNew) {
+                    if (fs.existsSync(entry.targetPath)) {
+                        fs.unlinkSync(entry.targetPath);
+                        const metaPath = entry.targetPath + '.meta';
+                        if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+                        deletedCount++;
+                    }
+                } else if (entry.backupContent) {
+                    try {
+                        fs.writeFileSync(entry.targetPath, Buffer.from(entry.backupContent, 'base64'));
+                        restoredCount++;
+                    } catch (e: any) {
+                        this.log('error', '恢复文件失败: ' + entry.targetPath);
+                    }
+                }
+            }
+
+            fs.unlinkSync(undoFile);
+            this.log('info', `撤销完成: 恢复 ${restoredCount} 个文件，删除 ${deletedCount} 个新增文件`);
+            return { success: true, restoredCount, deletedCount };
+        } catch (e: any) {
+            this.log('error', '撤销操作失败: ' + e.message);
+            return { success: false, restoredCount: 0, deletedCount: 0 };
+        }
+    }
+
+    canUndo(): boolean {
+        const undoFile = path.join(this._dataDir, RESOURCE_COPY_UNDO_FILE_NAME);
+        return fs.existsSync(undoFile);
     }
 
     matchFile(rule: ResourceCopyRule, fileName: string): boolean {

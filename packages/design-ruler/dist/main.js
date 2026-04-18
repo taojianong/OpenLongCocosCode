@@ -504,6 +504,25 @@ module.exports = {
                 Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'clear-result', JSON.stringify({ success: false, fileCount: 0 }));
             }
         },
+        // 撤销上次拷贝
+        'undo-last-copy'() {
+            var result = _resourceCopyHandler.undoLastCopy();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'undo-result', JSON.stringify(result));
+        },
+        // 检查是否可撤销
+        'can-undo'() {
+            var can = _resourceCopyHandler.canUndo();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'can-undo-result', JSON.stringify({ canUndo: can }));
+        },
+        // 获取日志
+        'get-copy-logs'() {
+            var logs = _resourceCopyHandler.getLogs();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-copy-logs', JSON.stringify(logs));
+        },
+        // 清空日志
+        'clear-copy-logs'() {
+            _resourceCopyHandler.clearLogs();
+        },
         //打开导出面板
         'open'() {
             // open entry panel registered in package.json

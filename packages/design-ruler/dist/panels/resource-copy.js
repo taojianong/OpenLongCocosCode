@@ -365,6 +365,70 @@ module.exports = Editor.Panel.extend({
 .clear-target-btn:hover:not(:disabled) {
     background: #e63946;
 }
+.progress-bar-container {
+    height: 4px;
+    background: #353535;
+    border-radius: 2px;
+    margin: 6px 0;
+    display: none;
+}
+.progress-bar-container.active {
+    display: block;
+}
+.progress-bar {
+    height: 100%;
+    background: #4a90e2;
+    border-radius: 2px;
+    transition: width 0.2s;
+    width: 0%;
+}
+.progress-label {
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 2px;
+    display: none;
+}
+.progress-label.active {
+    display: block;
+}
+.log-entry {
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: Consolas, monospace;
+    border-bottom: 1px solid #3a3a3a;
+    word-break: break-all;
+}
+.log-entry.info { color: #ccc; }
+.log-entry.warn { color: #ffb347; }
+.log-entry.error { color: #ff6b6b; }
+.log-time {
+    color: #666;
+    margin-right: 6px;
+}
+.log-section {
+    margin-top: 10px;
+    border-top: 1px solid #505050;
+    padding-top: 8px;
+}
+.log-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.log-section-title {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.log-section-content {
+    max-height: 150px;
+    overflow-y: auto;
+    background: #2a2a2a;
+    border-radius: 3px;
+    border: 1px solid #444;
+}
 .history-item {
     background: #404040;
     border: 1px solid #505050;
@@ -448,10 +512,12 @@ module.exports = Editor.Panel.extend({
     </div>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" data-tab="tab-rules">拷贝规则</button>
-    <button class="tab-btn" data-tab="tab-history">历史记录</button>
+    <button id="tab-btn-rules" class="tab-btn active">拷贝规则</button>
+    <button id="tab-btn-history" class="tab-btn">历史记录</button>
   </div>
-  <div id="tab-rules" class="tab-content active">
+  <div id="progress-bar-container" class="progress-bar-container"><div id="progress-bar" class="progress-bar"></div></div>
+  <div id="progress-label" class="progress-label"></div>
+  <div id="tab-content-rules" class="tab-content active">
     <div class="root-dir-section">
       <h4>根目录设置</h4>
       <div class="root-dir-item">
@@ -472,11 +538,19 @@ module.exports = Editor.Panel.extend({
     <div id="rules-list" class="rules-list"></div>
     <div class="bottom-actions">
       <button id="add-rule-btn" class="bottom-btn secondary">+ 添加条目</button>
+      <button id="undo-btn" class="bottom-btn secondary" style="background:#b34700">撤销</button>
       <button id="select-all-btn" class="bottom-btn secondary">全部选中</button>
       <button id="copy-all-btn" class="bottom-btn">全部拷贝</button>
     </div>
+    <div class="log-section">
+      <div class="log-section-header">
+        <span class="log-section-title">日志</span>
+        <button id="clear-logs-btn" class="toolbar-btn">清空</button>
+      </div>
+      <div id="log-list" class="log-section-content"></div>
+    </div>
   </div>
-  <div id="tab-history" class="tab-content">
+  <div id="tab-content-history" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
       <button id="clear-history-btn" class="toolbar-btn">清空历史</button>
     </div>
@@ -493,11 +567,21 @@ module.exports = Editor.Panel.extend({
         selectAllBtn: '#select-all-btn',
         copyAllBtn: '#copy-all-btn',
         addRuleBtn: '#add-rule-btn',
+        undoBtn: '#undo-btn',
         toastContainer: '#toast-container',
         historyList: '#history-list',
         clearHistoryBtn: '#clear-history-btn',
+        logList: '#log-list',
+        clearLogsBtn: '#clear-logs-btn',
         btnImport: '#btn-import',
         btnExport: '#btn-export',
+        progressBarContainer: '#progress-bar-container',
+        progressBar: '#progress-bar',
+        progressLabel: '#progress-label',
+        tabBtnRules: '#tab-btn-rules',
+        tabBtnHistory: '#tab-btn-history',
+        tabContentRules: '#tab-content-rules',
+        tabContentHistory: '#tab-content-history',
     },
     ready() {
         this._rules = [];
@@ -505,18 +589,21 @@ module.exports = Editor.Panel.extend({
             sourceRoot: '',
             exportRoots: []
         };
-        document.querySelectorAll('.tab-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                var _a;
-                const tabId = e.target.dataset.tab;
-                document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
-                e.target.classList.add('active');
-                (_a = document.getElementById(tabId)) === null || _a === void 0 ? void 0 : _a.classList.add('active');
-                if (tabId === 'tab-history') {
-                    sendResourceToMain('get-copy-history');
-                }
-            });
+        const self = this;
+        const allTabBtns = [this.$tabBtnRules, this.$tabBtnHistory];
+        const allTabContents = [this.$tabContentRules, this.$tabContentHistory];
+        this.$tabBtnRules.addEventListener('click', () => {
+            allTabBtns.forEach((b) => b.classList.remove('active'));
+            allTabContents.forEach((c) => c.classList.remove('active'));
+            this.$tabBtnRules.classList.add('active');
+            this.$tabContentRules.classList.add('active');
+        });
+        this.$tabBtnHistory.addEventListener('click', () => {
+            allTabBtns.forEach((b) => b.classList.remove('active'));
+            allTabContents.forEach((c) => c.classList.remove('active'));
+            this.$tabBtnHistory.classList.add('active');
+            this.$tabContentHistory.classList.add('active');
+            sendResourceToMain('get-copy-history');
         });
         this.$browseSourceRoot.addEventListener('click', () => {
             sendResourceToMain('browse-root-dir', JSON.stringify({ type: 'source' }));
@@ -547,6 +634,15 @@ module.exports = Editor.Panel.extend({
         this.$clearHistoryBtn.addEventListener('click', () => {
             sendResourceToMain('clear-copy-history');
             this.showToast('历史记录已清空');
+        });
+        this.$undoBtn.addEventListener('click', () => {
+            if (!confirm('确认撤销上次拷贝操作？'))
+                return;
+            sendResourceToMain('undo-last-copy');
+        });
+        this.$clearLogsBtn.addEventListener('click', () => {
+            sendResourceToMain('clear-copy-logs');
+            this.$logList.innerHTML = '';
         });
         this.$btnImport.addEventListener('click', () => {
             sendResourceToMain('import-config');
@@ -792,6 +888,10 @@ module.exports = Editor.Panel.extend({
                             <input type="checkbox" ${rule.recursive !== false ? 'checked' : ''} data-field="recursive" data-id="${rule.id}">
                             递归子目录
                         </label>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;margin-left:10px">
+                            <input type="checkbox" ${rule.incremental ? 'checked' : ''} data-field="incremental" data-id="${rule.id}">
+                            增量拷贝
+                        </label>
                     </div>
                     <div class="field-row">
                         <span class="field-label">文件筛选:</span>
@@ -996,6 +1096,16 @@ module.exports = Editor.Panel.extend({
                 }
             });
         });
+        list.querySelectorAll('.rule-item input[data-field="incremental"]').forEach((checkbox) => {
+            checkbox.addEventListener('change', (e) => {
+                const id = e.target.dataset.id;
+                const rule = this._rules.find((r) => r.id === id);
+                if (rule) {
+                    rule.incremental = e.target.checked;
+                    this.saveRules();
+                }
+            });
+        });
         // 设置输入框初始值
         Array.from(list.querySelectorAll('.source-dir-input')).forEach((input) => {
             const rule = this._rules.find((r) => r.id === input.dataset.id);
@@ -1043,6 +1153,18 @@ module.exports = Editor.Panel.extend({
             `;
             list.appendChild(el);
         });
+    },
+    appendLogEntry(entry) {
+        const list = this.$logList;
+        if (!list)
+            return;
+        const el = document.createElement('div');
+        el.className = 'log-entry ' + (entry.level || 'info');
+        el.innerHTML = `<span class="log-time">${entry.time || ''}</span>${entry.message || ''}`;
+        list.insertBefore(el, list.firstChild);
+        while (list.children.length > 200) {
+            list.removeChild(list.lastChild);
+        }
     },
     messages: {
         'update-copy-rules'(event, rulesJson) {
@@ -1176,6 +1298,58 @@ module.exports = Editor.Panel.extend({
             }
             catch (e) {
                 Editor.error('[resource-copy] 处理清空结果失败:', e);
+            }
+        },
+        'copy-progress'(event, data) {
+            try {
+                const { current, total, fileName } = JSON.parse(data);
+                const pct = Math.round((current / total) * 100);
+                this.$progressBarContainer.classList.add('active');
+                this.$progressLabel.classList.add('active');
+                this.$progressBar.style.width = pct + '%';
+                this.$progressLabel.textContent = `${current}/${total} (${pct}%) ${fileName}`;
+                if (current >= total) {
+                    setTimeout(() => {
+                        this.$progressBarContainer.classList.remove('active');
+                        this.$progressLabel.classList.remove('active');
+                        this.$progressBar.style.width = '0%';
+                    }, 2000);
+                }
+            }
+            catch (e) { /* ignore */ }
+        },
+        'copy-log'(event, entryJson) {
+            try {
+                const entry = JSON.parse(entryJson);
+                this.appendLogEntry(entry);
+            }
+            catch (e) { /* ignore */ }
+        },
+        'copy-log-clear'() {
+            this.$logList.innerHTML = '';
+        },
+        'update-copy-logs'(event, logsJson) {
+            try {
+                const logs = JSON.parse(logsJson);
+                this.$logList.innerHTML = '';
+                logs.forEach((entry) => this.appendLogEntry(entry));
+            }
+            catch (e) {
+                Editor.error('[resource-copy] 解析日志失败:', e);
+            }
+        },
+        'undo-result'(event, resultJson) {
+            try {
+                const { success, restoredCount, deletedCount } = JSON.parse(resultJson);
+                if (success) {
+                    this.showToast(`撤销成功: 恢复 ${restoredCount} 个，删除 ${deletedCount} 个`);
+                }
+                else {
+                    this.showToast('撤销失败或没有可撤销的操作', true);
+                }
+            }
+            catch (e) {
+                Editor.error('[resource-copy] 处理撤销结果失败:', e);
             }
         },
     },

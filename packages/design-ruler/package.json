@@ -19,8 +19,8 @@
         "main": "dist/panels/resource-copy.js",
         "type": "dockable",
         "title": "资源拷贝界面",
-        "width": 800,
-        "height": 900
+        "width": 600,
+        "height": 700
     },
     "main-menu": {
         "扩展/设计标尺/打开面板": {
@@ -38,7 +38,13 @@
         "watch": "tsc -w",
         "dev": "tsc -w --sourceMap",
         "check": "tsc --noEmit",
-        "clean": "rimraf dist || (if exist dist rmdir /s /q dist)"
+        "clean": "rimraf dist || (if exist dist rmdir /s /q dist)",
+        "copy": "node dist/copy-cli.js",
+        "copy:config": "node dist/copy-cli.js --config",
+        "copy:all": "node dist/copy-cli.js --all"
+    },
+    "bin": {
+        "resource-copy": "dist/copy-cli.js"
     },
     "devDependencies": {
         "@types/node": "^25.6.0",
