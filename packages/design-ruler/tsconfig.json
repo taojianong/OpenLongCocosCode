@@ -20,7 +20,8 @@
     "include": [
         "editor.d.ts",
         "main.ts",
-        "panels/**/*.ts"
+        "panels/**/*.ts",
+        "resource-copy-handler.ts"
     ],
     "exclude": [
         "node_modules",

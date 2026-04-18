@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    <div id="app">
+        <h2>export_excel</h2>
+        <hr />
+        <div>点击一下就导出:</div>
+        <hr />
+        <!-- <ui-button id="btn_all">全部导出</ui-button> -->
+        <!-- <ui-button id="btn_bullet">Bullet子弹</ui-button>
+        <ui-button id="btn_weapon">Weapon_武器</ui-button>
+        <ui-button id="btn_entity">Entity_敌人</ui-button>
+        <ui-button id="btn_lan_app">Language_app多语言翻译版</ui-button>
+        <ui-button id="btn_lan">Language多语言</ui-button>
+        <ui-button id="btn_shop">Shop商城章节礼包月卡等配置-雷</ui-button> -->
+
+        <div class="content" id="list">
+            <ui-button v-for="item in excellist" :key="item.name" v-on:click="onSelect(item)">{{
+                item.name
+                }}</ui-button>
+        </div>
+
+        <hr />
+        <ui-button @confirm="onConfirm" class="red bottom-right">刷新列表</ui-button>
+        <ui-button @confirm="onConfirmAll" class="red bottom-right">全部导出</ui-button>
+
+        <hr />
+        <h2>{{export_result}}</h2>
+    </div>
+</body>
+
+</html>

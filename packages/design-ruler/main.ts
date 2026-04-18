@@ -16,6 +16,8 @@ const os = require('os');
 const nodeCrypto = require('crypto');
 const electron = require('electron');
 
+const { ResourceCopyHandler } = require('./resource-copy-handler');
+
 const PACKAGE_NAME = 'cocos-design-ruler';
 
 // ============================================================
@@ -24,7 +26,9 @@ const PACKAGE_NAME = 'cocos-design-ruler';
 // 路径结构：{系统temp}/cocos-design-ruler-{用户名}/{项目hash}/
 // 这样每个用户的每个项目都有独立的缓存目录
 const TMP_BASE = os.tmpdir();
+//@ts-ignore
 const userName = (os.userInfo && os.userInfo().username) ? os.userInfo().username : process.env.USER || process.env.USERNAME || 'unknown';
+//@ts-ignore
 const projectHash = nodeCrypto.createHash('md5').update(process.cwd() || '').digest('hex').substr(0, 8);
 const DATA_DIR = path.join(TMP_BASE, PACKAGE_NAME + '-' + userName, projectHash);
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
@@ -36,6 +40,11 @@ var _currentSceneUuid = '';           // 当前场景/预制体的 UUID
 var _currentGuides: any[] = [];       // 当前对齐线数组
 var _currentDesignImagePath = '';     // 当前设计图文件路径（不存 base64，节省内存）
 var _currentVisible = false;          // 标尺当前是否显示
+
+// ============================================================
+// 资源拷贝处理器
+// ============================================================
+var _resourceCopyHandler: any = new ResourceCopyHandler(DATA_DIR);
 
 /**
  * 确保缓存目录存在
@@ -75,7 +84,7 @@ function saveCurrentData() {
     };
 
     try {
-        Editor.log('[design-ruler] 保存场景数据:', _currentSceneUuid);
+        // Editor.log('[design-ruler] 保存场景数据:', _currentSceneUuid);
         fs.writeFileSync(DATA_FILE, JSON.stringify(allData, null, 2), 'utf-8');
     } catch (e) {
         Editor.error('[design-ruler] 保存数据失败:', e);
@@ -189,7 +198,7 @@ var _injected = false;
 function injectOverlay() {
     var wc = getMainWebContents();
     if (!wc || _injected) return;
-
+    // @ts-ignore
     var code = fs.readFileSync(path.join(__dirname, '..', 'inject.js'), 'utf-8');
     wc.executeJavaScript(code, () => {
         Editor.log('[design-ruler] inject 完成');
@@ -202,6 +211,7 @@ function cleanupOverlay() {
     _injected = false;
 }
 
+// @ts-ignore
 module.exports = {
     load() {
         Editor.log('[design-ruler] 插件已加载');
@@ -242,8 +252,12 @@ module.exports = {
             Editor.Panel.open(PACKAGE_NAME);
         },
 
+        'open-resource-copy'() {
+            Editor.Panel.open(`${PACKAGE_NAME}.export`);
+        },
+
         'toggle-visible'() {
-            sendToRenderer('design-ruler:toggle-visible');
+            sendToRenderer(`${PACKAGE_NAME}:toggle-visible`);
         },
 
         // 标尺显示状态改变
@@ -360,5 +374,100 @@ module.exports = {
                 Editor.error('[design-ruler] guide-moved 错误:', e);
             }
         },
+
+        // 获取资源拷贝规则
+        'get-copy-rules'() {
+            var rules = _resourceCopyHandler.getCopyRules();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-copy-rules', JSON.stringify(rules));
+        },
+
+        // 保存资源拷贝规则
+        'save-copy-rules'(event: any, rulesJson: string) {
+            try {
+                var rules = JSON.parse(rulesJson);
+                _resourceCopyHandler.saveCopyRules(rules);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 保存拷贝规则失败:', e);
+            }
+        },
+
+        // 浏览目录
+        'browse-directory'(event: any, data: string) {
+            try {
+                var dataObj = JSON.parse(data);
+                _resourceCopyHandler.openDirectoryDialog(dataObj);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 处理目录浏览失败:', e);
+            }
+        },
+
+        // 浏览根目录
+        'browse-root-dir'(event: any, data: string) {
+            try {
+                var dataObj = JSON.parse(data);
+                _resourceCopyHandler.openRootDirDialog(dataObj);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 处理根目录浏览失败:', e);
+            }
+        },
+
+        // 获取根目录配置
+        'get-root-dirs'() {
+            var config = _resourceCopyHandler.getRootDirs();
+            Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'update-root-dirs', JSON.stringify(config));
+        },
+
+        // 保存根目录配置
+        'save-root-dirs'(event: any, configJson: string) {
+            try {
+                var config = JSON.parse(configJson);
+                _resourceCopyHandler.saveRootDirs(config);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 保存根目录配置失败:', e);
+            }
+        },
+
+        // 拷贝单个资源
+        'copy-single-resource'(event: any, ruleJson: string) {
+            try {
+                var rule = JSON.parse(ruleJson);
+                _resourceCopyHandler.copySingleResource(rule);
+            } catch (e: any) {
+                Editor.error('[resource-copy] 拷贝单个资源失败:', e);
+            }
+        },
+
+        // 拷贝所有资源
+        'copy-all-resources'(event: any, rulesJson: string) {
+            try {
+                var rules = JSON.parse(rulesJson);
+                if (Array.isArray(rules)) {
+                    _resourceCopyHandler.copyAllResources(rules);
+                }
+            } catch (e: any) {
+                Editor.error('[resource-copy] 拷贝所有资源失败:', e);
+            }
+        },
+
+        // 刷新meta文件
+        'refresh-meta-files'(event: any, dirPath: string) {
+            try {
+                var metaCount = _resourceCopyHandler.generateMissingMetaFiles(dirPath, true);
+                if (metaCount > 0) {
+                    _resourceCopyHandler.refreshAssetDb(dirPath);
+                    Editor.log('[resource-copy] 手动刷新meta:', metaCount, '个');
+                }
+                Editor.Ipc.sendToPanel(`${PACKAGE_NAME}.export`, 'meta-refresh-result', JSON.stringify({ count: metaCount }));
+            } catch (e: any) {
+                Editor.error('[resource-copy] 刷新meta失败:', e);
+            }
+        },
+
+        //打开导出面板
+        'open'() {
+            // open entry panel registered in package.json
+            Editor.Panel.open(`${PACKAGE_NAME}.export`);
+            Editor.log(`[main.js]--->打开面板`);
+        }
     },
 };

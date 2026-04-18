@@ -15,12 +15,22 @@
             "height": 600
         }
     },
+    "panel.export": {
+        "main": "dist/panels/resource-copy.js",
+        "type": "dockable",
+        "title": "资源拷贝界面",
+        "width": 500,
+        "height": 700
+    },
     "main-menu": {
         "扩展/设计标尺/打开面板": {
             "message": "cocos-design-ruler:open-panel"
         },
         "扩展/设计标尺/切换显示": {
             "message": "cocos-design-ruler:toggle-visible"
+        },
+        "扩展/资源拷贝": {
+            "message": "cocos-design-ruler:open-resource-copy"
         }
     },
     "scripts": {
@@ -30,5 +40,7 @@
         "check": "tsc --noEmit",
         "clean": "rimraf dist || (if exist dist rmdir /s /q dist)"
     },
-    "dependencies": {}
+    "devDependencies": {
+        "@types/node": "^25.6.0"
+    }
 }

@@ -21,6 +21,12 @@ declare namespace Editor {
         function callSceneScript(packageName: string, method: string, arg: any, cb: (err: Error, msg: any) => void): void;
         function callSceneScript(packageName: string, method: string, arg1: any, arg2: any, cb: (err: Error, msg: any) => void): void;
     }
+
+    const projectPath: string;
+
+    namespace assetdb {
+        function refresh(dbUrl: string, callback: (err: any) => void): void;
+    }
 }
 
 declare function require(module: string): any;
