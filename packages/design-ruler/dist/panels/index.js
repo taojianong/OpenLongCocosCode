@@ -330,6 +330,8 @@ button.small-btn {
         this.$guideStyle.addEventListener('change', (e) => {
             sendToMain('set-default-dashed', e.target.value === 'dashed');
         });
+        // 初始化：拉取当前设置
+        sendToMain('get-settings');
     },
     renderGuidesList() {
         const list = this.$guidesList;

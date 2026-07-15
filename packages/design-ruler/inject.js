@@ -30,18 +30,20 @@
     // 全局状态
     // ============================================================
     var state = {
-        visible: false,           // 标尺是否显示
-        guidesEnabled: true,      // 对齐线是否启用
-        guideColor: '#00FF00',    // 对齐线颜色
-        guideOpacity: 0.8,        // 对齐线不透明度
-        guides: [],               // 对齐线数组 [{type:'h'|'v', position:number, dashed:boolean}]
-        zoom: 1,                  // 当前缩放比例
-        defaultDashed: true,      // 新对齐线默认是否虚线
-        sceneOffset: { x: 0, y: 0 }, // 场景偏移量（预留，未使用）
+        visible: false,
+        guidesEnabled: true,
+        guideColor: '#00FF00',
+        guideOpacity: 0.8,
+        guides: [],
+        zoom: 1,
+        defaultDashed: true,
+        sceneOffset: { x: 0, y: 0 },
+        fixLabelFonts: false,   // 打开预制体时是否清除字体并设置粗体
     };
 
     // 常量定义
     var RULER_SIZE = 25;          // 标尺宽度/高度（像素）
+    var rectUtil = window.__designRulerRectUtil || null;
 
     // 拖拽状态
     var _dragging = -1;           // 正在拖拽的对齐线索引（-1表示无）
@@ -91,39 +93,42 @@
         }
 
         var frames = document.querySelectorAll('ui-panel-frame');
+        var bestFrame = rectUtil && rectUtil.pickSceneFrame
+            ? rectUtil.pickSceneFrame(frames, window.innerHeight)
+            : null;
         var best = null;
-        var bestFrame = null;
 
-        // 1. 查找场景面板：宽度最大且位置居中的 frame
-        for (var i = 0; i < frames.length; i++) {
-            var r = frames[i].getBoundingClientRect();
-
-            // 场景面板特征：足够大（>400px）且在中间位置（100-500px）
-            if (r.width > 400 && r.height > 50 && r.left > 100 && r.left < 500) {
-                if (!best || r.width > best.width) {
-                    // 计算 tab 栏高度（需排除）
-                    var tabHeight = 20; // 默认值
-                    var shadow = frames[i].shadowRoot;
-                    if (shadow) {
-                        var divs = shadow.querySelectorAll('div > div');
-                        if (divs.length >= 1) {
-                            tabHeight = divs[0].getBoundingClientRect().height;
-                        }
+        if (bestFrame) {
+            var r = bestFrame.getBoundingClientRect();
+            // 计算 tab 栏高度（需排除）
+            var tabHeight = 20; // 默认值
+            var shadow = bestFrame.shadowRoot;
+            if (shadow) {
+                // 累加所有"header 级"子元素高度，直到遇到内容区（高度 > 面板50%）
+                // 这样在预制体编辑模式下能同时计入 tab 栏和 PREFAB 保存/应用栏
+                var rootDiv = shadow.querySelector('div');
+                if (rootDiv) {
+                    var children = rootDiv.children;
+                    var accH = 0;
+                    for (var ci = 0; ci < children.length; ci++) {
+                        var chRect = children[ci].getBoundingClientRect();
+                        if (chRect.height > r.height * 0.5) break; // 内容区，停止累加
+                        if (chRect.height > 0) accH += chRect.height;
                     }
-
-                    // 构建实际画布区域（排除 tab 栏）
-                    best = {
-                        left: r.left,
-                        top: r.top + tabHeight,
-                        width: r.width,
-                        height: r.height - tabHeight,
-                        right: r.right,
-                        bottom: r.bottom,
-                        panelTop: r.top, // 保留原始 top 用于坐标计算
-                    };
-                    bestFrame = frames[i];
+                    if (accH > 0) tabHeight = accH;
                 }
             }
+
+            // 构建实际画布区域（排除 tab 栏）
+            best = {
+                left: r.left,
+                top: r.top + tabHeight,
+                width: r.width,
+                height: r.height - tabHeight,
+                right: r.right,
+                bottom: r.bottom,
+                panelTop: r.top, // 保留原始 top 用于坐标计算
+            };
         }
 
         if (best) {
@@ -619,6 +624,13 @@
         '<span id="__dr-opacity-label__" style="color:rgb(189,189,189);font-size:12px;white-space:nowrap;min-width:28px;">50%</span>',
         // 重载插件
         '<button id="__dr-reload__" style="background:rgb(65,65,65);border:1px solid #555;color:rgb(189,189,189);border-radius:3px;padding:1px 7px;cursor:pointer;font-size:12px;white-space:nowrap;">重载</button>',
+        // 字体清除开关
+        '<div style="display:flex;align-items:center;gap:4px;border-left:1px solid #444;padding-left:8px;">',
+        '  <span style="white-space:nowrap;font-size:12px;color:rgb(189,189,189);">字体</span>',
+        '  <div id="__dr-fix-fonts-toggle__" style="width:28px;height:14px;border-radius:7px;background:#555;cursor:pointer;position:relative;flex-shrink:0;" title="打开预制体时清除字体并设置粗体">',
+        '    <div id="__dr-fix-fonts-knob__" style="position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:rgb(189,189,189);transition:left 0.15s;"></div>',
+        '  </div>',
+        '</div>',
         '<input id="__dr-file-input__" type="file" accept="image/*" style="display:none;">',
     ].join('');
 
@@ -635,6 +647,10 @@
         if (tryInsertPanel()) {
             clearInterval(_panelShowTimer);
             updateRulerToggle();
+            // 从主进程拉取持久化的设置
+            try {
+                Editor.Ipc.sendToMain('cocos-design-ruler:sync-inject-state');
+            } catch (e) { }
         }
     }, 500);
 
@@ -648,17 +664,24 @@
         knob.style.left = on ? '16px' : '2px';
         adjustSceneUI();
     }
+
+    function updateFixFontsToggle() {
+        var toggle = document.getElementById('__dr-fix-fonts-toggle__');
+        var knob = document.getElementById('__dr-fix-fonts-knob__');
+        if (!toggle || !knob) return;
+        var on = state.fixLabelFonts;
+        toggle.style.background = on ? '#4af' : '#555';
+        knob.style.left = on ? '16px' : '2px';
+    }
     floatPanel.addEventListener('click', function (e) {
         var t = e.target;
-        var toggle = document.getElementById('__dr-ruler-toggle__');
-        var knob = document.getElementById('__dr-ruler-knob__');
-        if (toggle && (t === toggle || toggle.contains(t))) {
+        var rulerToggle = document.getElementById('__dr-ruler-toggle__');
+        if (rulerToggle && (t === rulerToggle || rulerToggle.contains(t))) {
             state.visible = !state.visible;
             overlay.style.display = state.visible ? 'block' : 'none';
             updateRulerToggle();
             draw();
             adjustSceneUI();
-            // 通知主进程保存状态
             Editor.Ipc.sendToMain('cocos-design-ruler:visible-changed', state.visible);
         } else if (t.id === '__dr-clear-guides__') {
             state.guides = [];
@@ -671,13 +694,19 @@
             window.__designRulerInjected = false;
             try {
                 if (typeof Editor !== 'undefined' && Editor.Ipc && Editor.Ipc.sendToMain) {
-                    Editor.log('[design-ruler] reload clicked - sending reinject via Editor.Ipc');
                     Editor.Ipc.sendToMain('cocos-design-ruler:reinject');
                 } else if (electron && electron.ipcRenderer) {
                     electron.ipcRenderer.send('editor:send2main', 'cocos-design-ruler:reinject');
                 }
             } catch (e) {
                 console.error('[design-ruler] reinject error:', e);
+            }
+        } else {
+            var fixToggle = document.getElementById('__dr-fix-fonts-toggle__');
+            if (fixToggle && (t === fixToggle || fixToggle.contains(t))) {
+                state.fixLabelFonts = !state.fixLabelFonts;
+                updateFixFontsToggle();
+                Editor.Ipc.sendToMain('cocos-design-ruler:set-fix-label-fonts', state.fixLabelFonts);
             }
         }
     });
@@ -928,6 +957,11 @@
         overlay.style.display = state.visible ? 'block' : 'none';
         draw();
         adjustSceneUI();
+    });
+
+    onMessage('design-ruler:fix-label-fonts-state', function (event, enabled) {
+        state.fixLabelFonts = !!enabled;
+        updateFixFontsToggle();
     });
 
     onMessage('design-ruler:cleanup', function () {

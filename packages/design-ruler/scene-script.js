@@ -196,7 +196,7 @@ module.exports = {
         let scene = cc.director.getScene();
         let sceneUuid = scene?.uuid || '';
 
-        Editor.log(`[scene-walker]--->open-scene sceneUuid:${sceneUuid}`);
+        // Editor.log(`[scene-walker]--->open-scene sceneUuid:${sceneUuid}`);
 
         //先使用reply回复uuid给renderer，renderer再发回ready通知main，main再调用loadSceneByUuid加载场景
         if (event && event.reply) {
@@ -208,16 +208,50 @@ module.exports = {
         //https://docs.cocos.com/creator/2.2/manual/zh/extension/asset-management.html
         //_Scene 需要再场景脚本中调用!!!
         _Scene && _Scene.loadSceneByUuid(sceneUuid, function (error) {
-            Editor.log(`[scene-walker]--->_Scene.loadSceneByUuid sceneUuid:${sceneUuid}`);
+            // Editor.log(`[scene-walker]--->_Scene.loadSceneByUuid sceneUuid:${sceneUuid}`);
             if (error) {
                 return;
             }
-            Editor.log(`[scene-walker]===>加载场景完成 uuid:${sceneUuid} `);
+            // Editor.log(`[scene-walker]===>加载场景完成 uuid:${sceneUuid} `);
         });
     },
 
     'cleanup': function (event) {
         cleanup();
         if (event && event.reply) event.reply(null);
+    },
+
+    // 清除预制体中所有非位图字体的 cc.Label 的 font，并设置 isBold=true
+    'fix-label-fonts': function (event) {
+        Editor.log('[design-ruler] fix-label-fonts: 开始执行');
+        var scene = cc.director.getScene();
+        if (!scene) {
+            Editor.log('[design-ruler] fix-label-fonts: 找不到场景，退出');
+            if (event && event.reply) event.reply(null, 0);
+            return;
+        }
+
+        var allLabels = scene.getComponentsInChildren(cc.Label);
+        Editor.log('[design-ruler] fix-label-fonts: 共找到 ' + allLabels.length + ' 个 Label');
+
+        var count = 0;
+        for (var i = 0; i < allLabels.length; i++) {
+            var label = allLabels[i];
+            if (!cc.isValid(label)) continue;
+
+            var isBitmap = label.font instanceof cc.BitmapFont;
+            Editor.log('[design-ruler] Label[' + i + '] node=' + label.node.name
+                + ' font=' + (label.font ? label.font.constructor.name : 'null')
+                + ' isBitmap=' + isBitmap);
+
+            if (!isBitmap) {
+                label.font = null;
+                label.isBold = true;
+                count++;
+            }
+        }
+
+        Editor.log('[design-ruler] fix-label-fonts: 处理了 ' + count + ' 个 Label');
+        if (event && event.reply) event.reply(null, count);
     },
 };

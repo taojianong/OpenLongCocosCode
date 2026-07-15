@@ -32,6 +32,7 @@ const userName = (os.userInfo && os.userInfo().username) ? os.userInfo().usernam
 const projectHash = nodeCrypto.createHash('md5').update(process.cwd() || '').digest('hex').substr(0, 8);
 const DATA_DIR = path.join(TMP_BASE, PACKAGE_NAME + '-' + userName, projectHash);
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
 // ============================================================
 // 运行时状态（当前场景的数据）
@@ -40,11 +41,30 @@ var _currentSceneUuid = '';           // 当前场景/预制体的 UUID
 var _currentGuides: any[] = [];       // 当前对齐线数组
 var _currentDesignImagePath = '';     // 当前设计图文件路径（不存 base64，节省内存）
 var _currentVisible = false;          // 标尺当前是否显示
+var _fixLabelFonts = false;           // 打开预制体时是否清除字体并设置粗体
 
 // ============================================================
 // 资源拷贝处理器
 // ============================================================
 var _resourceCopyHandler: any = new ResourceCopyHandler(DATA_DIR);
+
+function loadPluginSettings() {
+    if (!fs.existsSync(SETTINGS_FILE)) return {};
+    try {
+        return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+    } catch (e) {
+        return {};
+    }
+}
+
+function savePluginSettings(settings: any) {
+    ensureDataDir();
+    try {
+        fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+    } catch (e) {
+        Editor.error('[design-ruler] 保存设置失败:', e);
+    }
+}
 
 /**
  * 确保缓存目录存在
@@ -199,7 +219,8 @@ function injectOverlay() {
     var wc = getMainWebContents();
     if (!wc || _injected) return;
     // @ts-ignore
-    var code = fs.readFileSync(path.join(__dirname, '..', 'inject.js'), 'utf-8');
+    var rectUtilCode = fs.readFileSync(path.join(__dirname, '..', 'ruler-rect-util.js'), 'utf-8');
+    var code = rectUtilCode + '\n' + fs.readFileSync(path.join(__dirname, '..', 'inject.js'), 'utf-8');
     wc.executeJavaScript(code, () => {
         Editor.log('[design-ruler] inject 完成');
     });
@@ -215,6 +236,8 @@ function cleanupOverlay() {
 module.exports = {
     load() {
         Editor.log('[design-ruler] 插件已加载');
+        var settings = loadPluginSettings();
+        _fixLabelFonts = !!settings.fixLabelFonts;
         injectOverlay();
         electron.app.on('web-contents-created', (_sender: any, webContents: any) => {
             webContents.on('dom-ready', () => {
@@ -266,6 +289,27 @@ module.exports = {
             saveCurrentData();
         },
 
+        // 设置是否在打开预制体时清除字体
+        'set-fix-label-fonts'(event: any, enabled: boolean) {
+            _fixLabelFonts = enabled;
+            var settings = loadPluginSettings();
+            settings.fixLabelFonts = enabled;
+            savePluginSettings(settings);
+            sendToRenderer('design-ruler:fix-label-fonts-state', enabled);
+        },
+
+        // 面板请求当前设置
+        'get-settings'() {
+            Editor.Ipc.sendToPanel(PACKAGE_NAME, 'update-settings', JSON.stringify({
+                fixLabelFonts: _fixLabelFonts,
+            }));
+        },
+
+        // inject.js 请求当前设置
+        'sync-inject-state'() {
+            sendToRenderer('design-ruler:fix-label-fonts-state', _fixLabelFonts);
+        },
+
         //打开预制体
         'scene:enter-prefab-edit-mode'(event: any, uuid: string) {
             if (!_injected) injectOverlay();
@@ -277,6 +321,10 @@ module.exports = {
             Editor.Scene.callSceneScript(PACKAGE_NAME, 'clear-design-image', () => { });
             setTimeout(() => {
                 Editor.Scene.callSceneScript(PACKAGE_NAME, 'init', () => {
+                    Editor.log('[design-ruler] enter-prefab init done, _fixLabelFonts=' + _fixLabelFonts);
+                    if (_fixLabelFonts) {
+                        Editor.Scene.callSceneScript(PACKAGE_NAME, 'fix-label-fonts', () => { });
+                    }
                     if (uuid) applySceneData(uuid);
                 });
             }, 500);
@@ -295,7 +343,7 @@ module.exports = {
             if (!_injected) injectOverlay();
             // 保存当前场景数据
             saveCurrentData();
-            Editor.log('[design-ruler] *** scene-ready uuid:', uuid, event);
+            // Editor.log('[design-ruler] *** scene-ready uuid:', uuid, event);
             // 先清除当前数据
             sendToRenderer('design-ruler:clear-guides');
             //清除设计图
